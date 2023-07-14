@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.prod.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "target": "ESNext",
+    "outDir": "../build/es",
+    "declaration": true
+  }
+}

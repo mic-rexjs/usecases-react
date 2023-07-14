@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "strictNullChecks": true,
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "target": "ES5",
+    "downlevelIteration": true,
+    "allowJs": false,
+    "jsx": "react-jsx",
+    "experimentalDecorators": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "strictPropertyInitialization": true,
+    "lib": ["ESNext"],
+    "baseUrl": "./src",
+    "outDir": "./build",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "exclude": ["./build"]
+}
