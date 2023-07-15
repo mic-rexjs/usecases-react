@@ -56,7 +56,7 @@
     "@commitlint/cli": "^17.6.6",
     "@commitlint/config-angular": "^17.6.6",
     "@jest/globals": "^29.5.0",
-    "@rex-js/usecases": "^1.3.41",
+    "@rex-js/usecases": "^1.3.45",
     "@testing-library/react": "^14.0.0",
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.7",
