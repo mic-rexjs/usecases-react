@@ -1594,10 +1594,10 @@
     "@nodelib/fs.scandir" "2.1.5"
     fastq "^1.6.0"
 
-"@rex-js/usecases@^1.3.45":
-  version "1.3.45"
-  resolved "https://registry.yarnpkg.com/@rex-js/usecases/-/usecases-1.3.45.tgz#33f8677e0545fe63bf3f0de58433612e51f16aaf"
-  integrity sha512-QgMCbesKg7Z2TsPyk+9zrB6qGkM1/ddAPximmwK28MBX5K6lWqM7qTosaomh2s/KciA/CZezqs743BFjr/jM4A==
+"@rex-js/usecases@^1.3.50":
+  version "1.3.50"
+  resolved "https://registry.yarnpkg.com/@rex-js/usecases/-/usecases-1.3.50.tgz#e2c89f9e75d51abb0796fe20ee86e3b1b9a40e40"
+  integrity sha512-7bycJajd5I5gRhETsdxflhrawzA+RCL4y8+fINNANiZt+Nj/iXjcCNZA73p3jM1pqtDuzIWQ0vE6CogpKbmDcA==
 
 "@sinclair/typebox@^0.27.8":
   version "0.27.8"
