@@ -23,11 +23,13 @@ export interface UseCaseHookContextualOptions<T> {
   onChange?(newEntity: T, prevEntity: T): void;
 }
 
-export interface UseCaseHookOwnOptions<T> extends UseCaseHookContextualOptions<T> {
+export interface UseCaseHookOwnOptions<T, TOptions extends object> extends UseCaseHookContextualOptions<T> {
   stateless?: boolean;
+
+  options?: TOptions;
 }
 
-export type UseCaseHookOptions<T, TOptions extends object> = TOptions & UseCaseHookOwnOptions<T>;
+export type UseCaseHookOptions<T, TOptions extends object> = TOptions & UseCaseHookOwnOptions<T, TOptions>;
 
 export interface UseCaseHook {
   <

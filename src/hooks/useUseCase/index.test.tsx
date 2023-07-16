@@ -501,6 +501,24 @@ describe('useUseCase', (): void => {
       expect(onChange).toHaveBeenLastCalledWith({ ...defaultFile, path: PATH_1, ext: EXT_1 }, defaultFile);
     });
 
+    test('`options.options` should override rest options', (): void => {
+      const { result } = renderHook((): UseCaseContextWithProvider<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, fileUseCase, { pathPrefix: 'xyz/', options: { pathPrefix: '123/' } });
+      });
+
+      const { current: context } = result;
+      const [{ path }, reducers] = context;
+      const { setPath } = reducers;
+
+      expect(path).toBe('');
+
+      act((): void => {
+        setPath(PATH_1);
+      });
+
+      expect(result.current[0].path).toBe('123/' + PATH_1);
+    });
+
     test('when `options` has changed, it should not trigger update', (): void => {
       const onUpdate = jest.fn();
       const onDeepUpdate = jest.fn();

@@ -35,7 +35,7 @@ export const useUseCase = (<
   const [hasDefaultEntity] = useState(typeof arg2 === 'function');
   const [entityState, setEntityState] = useState(hasDefaultEntity ? (arg1 as T | EntityGetter<T>) : null);
   const options = ((hasDefaultEntity ? arg3 : arg2) as TOptions) || {};
-  const { stateless, watch, onChange, ...entityUseCaseOptions } = options;
+  const { stateless, watch, onChange, options: usecaseOptions, ...restUseCaseOptions } = options;
   const optionsGetterListRef = useRef<OptionsGetter<TOptions>[]>([]);
   const deps = ((hasDefaultEntity ? arg4 : arg3) as unknown[]) || [];
 
@@ -84,14 +84,16 @@ export const useUseCase = (<
   }, [hasDefaultEntity, contextEntity, stateless, entityState, arg1]);
 
   const initReducers = useMemoizedFn((): TReducers | ContextualEntityReducers<TEntityReducers> => {
+    const mergedOptions = { ...restUseCaseOptions, ...usecaseOptions } as TUseCaseOptions;
+
     if (!hasDefaultEntity) {
-      return contextEntityReducers || (usecase as UseCase<TReducers>)(options);
+      return contextEntityReducers || (usecase as UseCase<TReducers>)(mergedOptions);
     }
 
     const { createEntityReducers } = entityReducerUseCase();
 
     return createEntityReducers(entity, usecase as EntityUseCase<T, TEntityReducers, TUseCaseOptions>, {
-      ...(entityUseCaseOptions as TUseCaseOptions),
+      ...mergedOptions,
       onChange(newEntity: T, prevEntity: T): void {
         if (hasDefaultEntity && !stateless) {
           setEntityState(newEntity);
