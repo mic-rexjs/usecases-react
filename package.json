@@ -1,6 +1,6 @@
 {
   "name": "@rex-js/usecase-react",
-  "version": "1.3.30",
+  "version": "1.3.31",
   "description": "React-based solution for use usecases of Clean Architecture",
   "private": true,
   "keywords": [
