@@ -1,12 +1,17 @@
-import { AsyncEntityGenerator, EntityGenerator, EntityReducers, Reducers } from '@rex-js/usecases/es/types';
+import {
+  objectUseCase,
+  AsyncEntityGenerator,
+  EntityGenerator,
+  EntityReducers,
+  Reducers,
+  ObjectReducers,
+} from '@mic-rexjs/usecases';
 import { describe, expect, jest, test } from '@jest/globals';
 import { renderHook, act, render, fireEvent, screen } from '@testing-library/react';
 import { useUseCase } from '.';
 import { UseCaseContext, UseCaseContextWithProvider } from '../../configs/usecaseContextMap/types';
 import { useDeepCompareEffect, useMemoizedFn, useUpdate, useUpdateEffect } from 'ahooks';
 import { Dispatch, Fragment, useEffect, useRef, useState } from 'react';
-import { ObjectReducers } from '@rex-js/usecases/es/objectUseCase/types';
-import { objectUseCase } from '@rex-js/usecases';
 
 interface TestFile {
   path: string;
@@ -503,7 +508,10 @@ describe('useUseCase', (): void => {
 
     test('`options.options` should override rest options', (): void => {
       const { result } = renderHook((): UseCaseContextWithProvider<TestFile, TestReducers<TestFile>> => {
-        return useUseCase(defaultFile, fileUseCase, { pathPrefix: 'xyz/', options: { pathPrefix: '123/' } });
+        return useUseCase(defaultFile, fileUseCase, {
+          pathPrefix: 'xyz/',
+          options: { pathPrefix: '123/' },
+        });
       });
 
       const { current: context } = result;
@@ -800,7 +808,11 @@ describe('useUseCase', (): void => {
       expect(onSecondChange).toHaveBeenCalledTimes(0);
       fireEvent.click(screen.getByText(secondButtonText));
       expect(onSecondChange).toHaveBeenCalledTimes(1);
-      expect(onSecondChange).toHaveBeenLastCalledWith(defaultFile, { ...defaultFile, ext: EXT_1, path: PATH_1 });
+      expect(onSecondChange).toHaveBeenLastCalledWith(defaultFile, {
+        ...defaultFile,
+        ext: EXT_1,
+        path: PATH_1,
+      });
       expect(onFirstChange).toHaveBeenCalledTimes(1);
       expect(onParentPathChange).toHaveBeenCalledTimes(2);
     });
@@ -859,7 +871,11 @@ describe('useUseCase', (): void => {
       expect(onSecondExtChange).toHaveBeenCalledTimes(0);
       fireEvent.click(screen.getByText(secondButtonText));
       expect(onSecondExtChange).toHaveBeenCalledTimes(1);
-      expect(onSecondExtChange).toHaveBeenLastCalledWith(defaultFile, { ...defaultFile, ext: EXT_1, path: PATH_1 });
+      expect(onSecondExtChange).toHaveBeenLastCalledWith(defaultFile, {
+        ...defaultFile,
+        ext: EXT_1,
+        path: PATH_1,
+      });
       expect(onFirstExtChange).toHaveBeenCalledTimes(1);
       expect(onParentExtChange).toHaveBeenCalledTimes(2);
     });

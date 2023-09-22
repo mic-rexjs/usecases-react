@@ -1,4 +1,4 @@
-import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@rex-js/usecases/es/types';
+import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
 import { UseCaseContext, UseCaseContextWithProvider } from '../../configs/usecaseContextMap/types';
 
 export interface EntityGetter<T> {

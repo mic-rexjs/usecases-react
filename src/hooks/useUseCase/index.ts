@@ -1,6 +1,6 @@
 import { useLatest, useMemoizedFn } from 'ahooks';
 import React, { Context, createContext, useContext, useMemo, useRef, useState } from 'react';
-import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@rex-js/usecases/es/types';
+import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
 import { UseCaseHookOptions, UseCaseHook, EntityGetter } from './types';
 import { defaultUseCaseContext } from '../../configs/defaultUseCaseContext';
 import { usecaseContextMap } from '../../configs/usecaseContextMap';
@@ -18,7 +18,7 @@ import {
 import { optionsGetterCollectionUseCase } from '../../core/usecases/optionsGetterCellectionUseCase';
 import { triggerCallbacks } from './methods/triggerCallbacks';
 import { useOptionsTransfer } from '../useOptionsTransfer';
-import { entityReducerUseCase } from '@rex-js/usecases';
+import { entityReducerUseCase } from '@mic-rexjs/usecases';
 
 export const useUseCase = (<
   T,

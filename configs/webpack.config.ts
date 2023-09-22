@@ -17,7 +17,7 @@ const initConfig = (): Configuration => {
       libraryTarget: 'umd',
       globalObject: 'this',
     },
-    externals: ['@rex-js/usecases', 'react', 'ahooks'],
+    externals: ['@mic-rexjs/usecases', 'react', 'ahooks'],
     resolve: {
       extensions: ['.js'],
     },
@@ -42,6 +42,7 @@ const initConfig = (): Configuration => {
             transform(content): string {
               const json = JSON.parse(content.toString());
 
+              json.scripts = {};
               json.private = false;
               return JSON.stringify(json, null, 2);
             },

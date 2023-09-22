@@ -3,9 +3,9 @@ React-based solution for use usecases of Clean Architecture.
 
 ## Install
 ```bash
-$ npm install --save @rex-js/usecase-react
+$ npm install --save @mic-rexjs/usecase-react
 # -
-$ yarn add --dev @rex-js/usecase-react
+$ yarn add --dev @mic-rexjs/usecase-react
 ```
 
 ## Links
@@ -16,7 +16,7 @@ $ yarn add --dev @rex-js/usecase-react
 ## Usage with Non-Entity Mode
 ```tsx
 // a.ts
-import { Reducers } from '@rex-js/usecases';
+import { Reducers } from '@mic-rexjs/usecases';
 
 type MathReducers = Reducers<{
   add(value1: number, value2: number): number;
@@ -51,9 +51,12 @@ const MyComponent = (): React.ReactElement => {
 ## Useage with Entity Mode
 ```tsx
 // a.ts
-import { objectUseCase } from '@rex-js/usecases';
-import { ObjectReducers } from '@rex-js/usecases/es/objectUseCase/types';
-import { EntityGenerator, EntityReducers } from '@rex-js/usecases/es/types';
+import {
+	objectUseCase,
+	ObjectReducers,
+	EntityGenerator,
+	EntityReducers
+} from '@mic-rexjs/usecases';
 
 interface File {
   path: string;
@@ -111,7 +114,7 @@ const fileUseCase = <T extends File>({ maxContentLength = 2000 }: FileUseCaseOpt
 };
 
 // b.tsx
-import { useUseCase } from '@rex-js/usecase-react';
+import { useUseCase } from '@mic-rexjs/usecase-react';
 import ReactDOM from 'react-dom';
 
 const ParentComponent = ({ children }: React.PropsWithChildren): React.ReactElement => {
@@ -181,4 +184,4 @@ ReactDOM.render(
 ```
 
 ## Test Demos
-- [useUseCase](https://github.com/china-liji/mic-usecase-react/blob/main/src/entityUseCase/index.test.ts)
+- [useUseCase](https://github.com/mic-rexjs/usecase-react/blob/main/src/entityUseCase/index.test.ts)

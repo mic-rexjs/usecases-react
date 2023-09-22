@@ -1,4 +1,4 @@
-import { Reducers } from '@rex-js/usecases/es/types';
+import { Reducers } from '@mic-rexjs/usecases';
 
 export interface OptionsGetter<T> {
   (): T;

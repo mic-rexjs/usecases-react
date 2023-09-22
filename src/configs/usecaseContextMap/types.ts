@@ -1,5 +1,5 @@
 import { OptionsGetterCollectionReducers } from '../../core/usecases/optionsGetterCellectionUseCase/types';
-import { AsyncEntityGenerator, EntityGenerator, EntityReducers, EntityUseCase } from '@rex-js/usecases/es/types';
+import { AsyncEntityGenerator, EntityGenerator, EntityReducers, EntityUseCase } from '@mic-rexjs/usecases';
 
 export type ContextualEntityReducer<T> = T extends (entity: infer TEntity, ...args: infer TArgs) => infer TReturn
   ? (
