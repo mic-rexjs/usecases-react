@@ -184,4 +184,4 @@ ReactDOM.render(
 ```
 
 ## Test Demos
-- [useUseCase](https://github.com/mic-rexjs/usecases-react/blob/main/src/entityUseCase/index.test.ts)
+- [useUseCase](https://github.com/mic-rexjs/usecases-react/blob/main/src/hooks/useUseCase/index.test.tsx)
