@@ -3,9 +3,9 @@ React-based solution for use usecases of Clean Architecture.
 
 ## Install
 ```bash
-$ npm install --save @mic-rexjs/usecase-react
+$ npm install --save @mic-rexjs/usecases-react
 # -
-$ yarn add --dev @mic-rexjs/usecase-react
+$ yarn add --dev @mic-rexjs/usecases-react
 ```
 
 ## Links
@@ -114,7 +114,7 @@ const fileUseCase = <T extends File>({ maxContentLength = 2000 }: FileUseCaseOpt
 };
 
 // b.tsx
-import { useUseCase } from '@mic-rexjs/usecase-react';
+import { useUseCase } from '@mic-rexjs/usecases-react';
 import ReactDOM from 'react-dom';
 
 const ParentComponent = ({ children }: React.PropsWithChildren): React.ReactElement => {
@@ -184,4 +184,4 @@ ReactDOM.render(
 ```
 
 ## Test Demos
-- [useUseCase](https://github.com/mic-rexjs/usecase-react/blob/main/src/entityUseCase/index.test.ts)
+- [useUseCase](https://github.com/mic-rexjs/usecases-react/blob/main/src/entityUseCase/index.test.ts)

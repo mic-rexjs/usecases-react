@@ -1,6 +1,6 @@
 {
   "name": "@mic-rexjs/usecases-react",
-  "version": "1.3.32",
+  "version": "1.3.33",
   "description": "React-based solution for use usecases of Clean Architecture",
   "private": true,
   "keywords": [
@@ -36,9 +36,9 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mic-rexjs/usecase-react"
+    "url": "git+https://github.com/mic-rexjs/usecases-react"
   },
-  "homepage": "https://github.com/mic-rexjs/usecase-react#README.md",
+  "homepage": "https://github.com/mic-rexjs/usecases-react#README.md",
   "author": {
     "name": "Michael Lee",
     "email": "hello_zaizi@163.com"
