@@ -83,7 +83,7 @@ export const useUseCase = (<
     return (arg1 as EntityGetter<T>)();
   }, [hasDefaultEntity, contextEntity, stateless, entityState, arg1]);
 
-  const initReducers = useMemoizedFn((): TReducers | ContextualEntityReducers<TEntityReducers> => {
+  const initReducers = useMemoizedFn((): TReducers | ContextualEntityReducers<T, TEntityReducers> => {
     const mergedOptions = { ...restUseCaseOptions, ...usecaseOptions } as TUseCaseOptions;
 
     if (!hasDefaultEntity) {
@@ -122,7 +122,7 @@ export const useUseCase = (<
     TEntityReducers,
     TOptions
   > => {
-    return [entity, reducers as ContextualEntityReducers<TEntityReducers>, collectionReducers];
+    return [entity, reducers as ContextualEntityReducers<T, TEntityReducers>, collectionReducers];
   }, [entity, reducers, collectionReducers]);
 
   const contextValueWithCollectionReducersRef = useLatest(contextValueWithCollectionReducers);
@@ -145,10 +145,10 @@ export const useUseCase = (<
     | UseCaseContext<T, TEntityReducers>
     | UseCaseContextWithProvider<T, TEntityReducers> => {
     if (hasDefaultEntity) {
-      return [entity, reducers as ContextualEntityReducers<TEntityReducers>, Provider];
+      return [entity, reducers as ContextualEntityReducers<T, TEntityReducers>, Provider];
     }
 
-    return [entity, reducers as ContextualEntityReducers<TEntityReducers>];
+    return [entity, reducers as ContextualEntityReducers<T, TEntityReducers>];
   }, [entity, reducers, hasDefaultEntity, Provider]);
 
   const result = useMemo(():

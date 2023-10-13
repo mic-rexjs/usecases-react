@@ -1,21 +1,21 @@
 import { OptionsGetterCollectionReducers } from '../../core/usecases/optionsGetterCellectionUseCase/types';
 import { AsyncEntityGenerator, EntityGenerator, EntityReducers, EntityUseCase } from '@mic-rexjs/usecases';
 
-export type ContextualEntityReducer<T> = T extends (entity: infer TEntity, ...args: infer TArgs) => infer TReturn
+export type ContextualEntityReducer<T, TReducer> = TReducer extends (entity: T, ...args: infer TArgs) => infer TReturn
   ? (
       ...args: TArgs
-    ) => TReturn extends AsyncEntityGenerator<TEntity, infer TResult>
+    ) => TReturn extends AsyncEntityGenerator<T, infer TResult>
       ? Promise<TResult>
-      : TReturn extends EntityGenerator<TEntity, infer TResult>
+      : TReturn extends EntityGenerator<T, infer TResult>
       ? TResult
       : TReturn
   : never;
 
-export type ContextualEntityReducers<T> = {
-  [K in keyof T]: ContextualEntityReducer<T[K]>;
+export type ContextualEntityReducers<T, TReducers> = {
+  [K in keyof TReducers]: ContextualEntityReducer<T, TReducers[K]>;
 };
 
-export type UseCaseContext<T, TReducers> = [entity: T, reducers: ContextualEntityReducers<TReducers>];
+export type UseCaseContext<T, TReducers> = [entity: T, reducers: ContextualEntityReducers<T, TReducers>];
 
 export type UseCaseContextWithCollectionReducers<T, TReducers, TOptions> = [
   ...context: UseCaseContext<T, TReducers>,
