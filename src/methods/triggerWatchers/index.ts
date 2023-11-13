@@ -1,4 +1,4 @@
-import { EntityWatchMap, EntityWatcher } from '../../types';
+import { EntityWatchMap, EntityWatcher } from '../../hooks/useUseCase/types';
 
 export const triggerWatchers = <T>(watch: EntityWatchMap<T>, newEntity: T, prevEntity: T): void => {
   for (const [property, watcher] of Object.entries(watch)) {

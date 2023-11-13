@@ -1,5 +1,12 @@
+import { ContextualEntityReducers } from '@/configs/defaultUseCaseContext/types';
 import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
-import { UseCaseContext, UseCaseContextWithProvider } from '../../configs/usecaseContextMap/types';
+import { UseCaseProvider } from '../useProvider/types';
+
+export type CoreCollection<
+  T,
+  TEntityReducers extends EntityReducers<T>,
+  TProvide extends UseCaseProvider | null = UseCaseProvider
+> = [entity: T, reducers: ContextualEntityReducers<T, TEntityReducers>, Provider: TProvide];
 
 export interface EntityGetter<T> {
   (): T;
@@ -23,39 +30,31 @@ export interface UseCaseHookContextualOptions<T> {
   onChange?(newEntity: T, prevEntity: T): void;
 }
 
-export interface UseCaseHookOwnOptions<T, TOptions extends object> extends UseCaseHookContextualOptions<T> {
+export interface UseCaseHookOwnOptions<T, TUseCaseOptions extends object> extends UseCaseHookContextualOptions<T> {
   stateless?: boolean;
 
-  options?: TOptions;
+  options?: TUseCaseOptions;
 }
 
-export type UseCaseHookOptions<T, TOptions extends object> = TOptions & UseCaseHookOwnOptions<T, TOptions>;
+export type UseCaseHookOptions<T, TUseCaseOptions extends object = object> = TUseCaseOptions &
+  UseCaseHookOwnOptions<T, TUseCaseOptions>;
 
 export interface UseCaseHook {
-  <
-    T,
-    TReducers extends EntityReducers<T>,
-    TOptions extends UseCaseHookContextualOptions<T> = UseCaseHookContextualOptions<T>
-  >(
-    usecase: EntityUseCase<T, TReducers & EntityReducers<T>>,
-    options?: TOptions
-  ): UseCaseContext<T, TReducers>;
+  <T, TEntityReducers extends EntityReducers<T>>(
+    usecase: EntityUseCase<T, TEntityReducers & EntityReducers<T>> & UseCase<TEntityReducers>,
+    options?: UseCaseHookContextualOptions<T>
+  ): CoreCollection<T, TEntityReducers, null>;
 
-  <
-    T,
-    TReducers extends EntityReducers<T>,
-    TUseCaseOptions extends object = object,
-    TOptions extends UseCaseHookOptions<T, TUseCaseOptions> = UseCaseHookOptions<T, TUseCaseOptions>
-  >(
-    defaultEntity: T | EntityGetter<T>,
-    usecase: EntityUseCase<T, TReducers, TUseCaseOptions> & UseCase<TReducers, TUseCaseOptions>,
-    options?: TOptions,
+  <T, TEntityReducers extends EntityReducers<T>, TUseCaseOptions extends object = object>(
+    initailEntity: T | EntityGetter<T>,
+    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> & UseCase<TEntityReducers, TUseCaseOptions>,
+    options?: UseCaseHookOptions<T, TUseCaseOptions>,
     deps?: unknown[]
-  ): UseCaseContextWithProvider<T, TReducers>;
+  ): CoreCollection<T, TEntityReducers>;
 
-  <T extends Reducers, TOptions extends object = object>(
-    usecase: UseCase<T, TOptions>,
-    options?: TOptions,
+  <T extends Reducers, TUseCaseOptions extends object = object>(
+    usecase: UseCase<T, TUseCaseOptions>,
+    options?: TUseCaseOptions,
     deps?: unknown[]
   ): T;
 }

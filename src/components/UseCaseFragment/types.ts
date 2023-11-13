@@ -1,8 +1,8 @@
 import { EntityReducers, EntityUseCase } from '@mic-rexjs/usecases';
 import { EntityWatchMap } from '../../hooks/useUseCase/types';
 
-export interface UseCaseFragmentProps<T, TReducers extends EntityReducers<T>> {
-  usecase: EntityUseCase<T, TReducers & EntityReducers<T>>;
+export interface UseCaseFragmentProps<T, TEntityReducers extends EntityReducers<T>> {
+  usecase: EntityUseCase<T, TEntityReducers & EntityReducers<T>>;
 
   watch?: EntityWatchMap<T>;
 
