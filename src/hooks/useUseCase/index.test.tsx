@@ -5,13 +5,14 @@ import {
   EntityReducers,
   Reducers,
   ObjectReducers,
+  entityUseCase,
 } from '@mic-rexjs/usecases';
 import { describe, expect, jest, test } from '@jest/globals';
 import { renderHook, act, render, fireEvent, screen } from '@testing-library/react';
 import { useUseCase } from '.';
 import { useDeepCompareEffect, useMemoizedFn, useUpdate, useUpdateEffect } from 'ahooks';
 import { Dispatch, Fragment, useEffect, useRef, useState } from 'react';
-import { CoreCollection } from './types';
+import { CoreCollection, EntityWatchEvent } from './types';
 
 interface TestFile {
   path: string;
@@ -19,6 +20,14 @@ interface TestFile {
   ext: string;
 
   size: number;
+}
+
+interface TestFieldPathData {
+  list?: TestFile[];
+
+  nestedList?: TestFile[][][];
+
+  obj?: Record<'file', Partial<TestFile>>;
 }
 
 type TestReducers<T extends TestFile> = EntityReducers<
@@ -107,9 +116,9 @@ const fileUseCase = <T extends TestFile>(options: FileUseCaseOptions = {}): Test
     yield* setPath(entity, path);
     await Promise.resolve(null);
 
-    yield (prevEntity: T): T => {
+    yield (oldEntity: T): T => {
       return {
-        ...prevEntity,
+        ...oldEntity,
         size,
       };
     };
@@ -138,6 +147,10 @@ const mathUseCase = (options: MathUseCaseOptions = {}): MathReducers => {
   };
 
   return { add, subtraction };
+};
+
+const fieldPathUseCase = (): EntityReducers<TestFieldPathData> => {
+  return objectUseCase();
 };
 
 const Child = ({ textPrefix = '', onUpdate, onPathChange, onUndefinedEntity }: ChildProps): React.ReactElement => {
@@ -257,9 +270,9 @@ describe('useUseCase', (): void => {
         return useUseCase(defaultFile, fileUseCase);
       });
 
-      const { current: context } = result;
+      const { current: cores } = result;
 
-      expect(context).toHaveLength(3);
+      expect(cores).toHaveLength(3);
     });
 
     test('`entity` should equal `defaultFile`', (): void => {
@@ -267,8 +280,8 @@ describe('useUseCase', (): void => {
         return useUseCase(defaultFile, fileUseCase);
       });
 
-      const { current: context } = result;
-      const [entity] = context;
+      const { current: cores } = result;
+      const [entity] = cores;
 
       expect(entity).toBe(defaultFile);
     });
@@ -278,8 +291,8 @@ describe('useUseCase', (): void => {
         return useUseCase(defaultFile, fileUseCase);
       });
 
-      const { current: context } = result;
-      const [, reducers] = context;
+      const { current: cores } = result;
+      const [, reducers] = cores;
 
       expect(typeof reducers).toBe('object');
     });
@@ -289,8 +302,8 @@ describe('useUseCase', (): void => {
         return useUseCase(defaultFile, fileUseCase);
       });
 
-      const { current: context } = result;
-      const [, , Provider] = context;
+      const { current: cores } = result;
+      const [, , Provider] = cores;
 
       expect(typeof Provider).toBe('function');
     });
@@ -350,8 +363,8 @@ describe('useUseCase', (): void => {
         return useUseCase(defaultFile, fileUseCase);
       });
 
-      const { current: context } = result;
-      const [entity, reducers] = context;
+      const { current: cores } = result;
+      const [entity, reducers] = cores;
       const { setPath, setEntity } = reducers;
 
       act((): void => {
@@ -359,7 +372,7 @@ describe('useUseCase', (): void => {
         setEntity({ size: 5000 });
       });
 
-      expect(result.current).not.toBe(context);
+      expect(result.current).not.toBe(cores);
       expect(result.current[0]).not.toBe(entity);
       expect(result.current[1]).not.toBe(reducers);
       expect(result.current[1].setPath).not.toBe(setPath);
@@ -385,16 +398,16 @@ describe('useUseCase', (): void => {
         return useUseCase(defaultFile, fileUseCase);
       });
 
-      const { current: context } = result;
-      const [entity, reducers] = context;
+      const { current: cores } = result;
+      const [entity, reducers] = cores;
       const { readFile } = reducers;
 
       const promise = act((): Promise<number> => {
         return readFile(PATH_1);
       });
 
-      expect(result.current).toBe(context);
-      expect(result.current).toEqual(context);
+      expect(result.current).toBe(cores);
+      expect(result.current).toEqual(cores);
       expect(onUpdate).toHaveBeenCalledTimes(0);
 
       await promise;
@@ -419,8 +432,8 @@ describe('useUseCase', (): void => {
         return useUseCase(defaultFile, fileUseCase);
       });
 
-      const { current: context } = result;
-      const [, reducers] = context;
+      const { current: cores } = result;
+      const [, reducers] = cores;
       const { init } = reducers;
 
       act((): void => {
@@ -446,8 +459,8 @@ describe('useUseCase', (): void => {
         }
       );
 
-      const { current: context } = result;
-      const [, { setPath }] = context;
+      const { current: cores } = result;
+      const [, { setPath }] = cores;
 
       setPath(PATH_1);
       expect(onUpdate).toHaveBeenCalledTimes(0);
@@ -472,28 +485,28 @@ describe('useUseCase', (): void => {
         return useUseCase(defaultFile, fileUseCase, { stateless: true });
       });
 
-      const { current: context } = result;
-      const [, reducers] = context;
+      const { current: cores } = result;
+      const [, reducers] = cores;
       const { setPath } = reducers;
 
       act((): void => {
         setPath(PATH_1);
       });
 
-      expect(result.current).toBe(context);
-      expect(result.current).toEqual(context);
+      expect(result.current).toBe(cores);
+      expect(result.current).toEqual(cores);
       expect(onUpdate).toHaveBeenCalledTimes(0);
     });
 
     test('`options.onChange` should be trigger when entity has changed', (): void => {
-      const onChange = jest.fn<(newEntity: TestFile, prevEntity: TestFile) => void>();
+      const onChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
 
       const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
         return useUseCase(defaultFile, fileUseCase, { onChange });
       });
-      ``;
-      const { current: context } = result;
-      const [, reducers] = context;
+
+      const { current: cores } = result;
+      const [, reducers] = cores;
       const { setPath } = reducers;
 
       expect(onChange).toHaveBeenCalledTimes(0);
@@ -514,8 +527,8 @@ describe('useUseCase', (): void => {
         });
       });
 
-      const { current: context } = result;
-      const [{ path }, reducers] = context;
+      const { current: cores } = result;
+      const [{ path }, reducers] = cores;
       const { setPath } = reducers;
 
       expect(path).toBe('');
@@ -558,6 +571,40 @@ describe('useUseCase', (): void => {
     });
 
     test('when `entity` change, it should trigger watchers', (): void => {
+      const onPathChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+      const onSizeChange = jest.fn();
+
+      const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, fileUseCase, {
+          watch: {
+            path: onPathChange,
+            size: onSizeChange,
+          },
+        });
+      });
+
+      const { current: cores } = result;
+      const [, { setPath }] = cores;
+
+      expect(onPathChange).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        setPath(PATH_1);
+      });
+
+      expect(onPathChange).toHaveBeenCalledTimes(1);
+      expect(onSizeChange).toHaveBeenCalledTimes(0);
+
+      expect(onPathChange).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, path: PATH_1, ext: EXT_1 },
+        oldEntity: defaultFile,
+        newValue: PATH_1,
+        oldValue: '',
+      });
+    });
+
+    test('watcher should be updated after `entity` change', (): void => {
       const onPathChange1 = jest.fn();
       const onPathChange2 = jest.fn();
       let onPathChange = onPathChange1;
@@ -570,8 +617,8 @@ describe('useUseCase', (): void => {
         });
       });
 
-      const { current: context } = result;
-      const [, { setPath, setEntity }] = context;
+      const { current: cores } = result;
+      const [, { setPath, setEntity }] = cores;
 
       onPathChange = onPathChange2;
       expect(onPathChange1).toHaveBeenCalledTimes(0);
@@ -582,7 +629,14 @@ describe('useUseCase', (): void => {
       });
 
       expect(onPathChange1).toHaveBeenCalledTimes(1);
-      expect(onPathChange1).toHaveBeenLastCalledWith({ ...defaultFile, path: PATH_1, ext: EXT_1 }, defaultFile);
+
+      expect(onPathChange1).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, path: PATH_1, ext: EXT_1 },
+        oldEntity: defaultFile,
+        newValue: PATH_1,
+        oldValue: '',
+      });
 
       act((): void => {
         setPath('');
@@ -590,10 +644,13 @@ describe('useUseCase', (): void => {
 
       expect(onPathChange2).toHaveBeenCalledTimes(1);
 
-      expect(onPathChange2).toHaveBeenLastCalledWith(
-        { ...defaultFile, size: 5000 },
-        { ...defaultFile, path: PATH_1, size: 5000, ext: EXT_1 }
-      );
+      expect(onPathChange2).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, size: 5000 },
+        oldEntity: { ...defaultFile, path: PATH_1, size: 5000, ext: EXT_1 },
+        newValue: '',
+        oldValue: PATH_1,
+      });
     });
 
     test('when `deps` has changed, it should trigger update', (): void => {
@@ -829,7 +886,7 @@ describe('useUseCase', (): void => {
     test('`options.onChange` event should be trigger at child elements', (): void => {
       const onFirstChange = jest.fn();
       const onSecondChange = jest.fn();
-      const onParentPathChange = jest.fn<(newEntity: TestFile, prevEntity: TestFile) => void>();
+      const onParentPathChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
       const firstButtonText = 'first button';
       const secondButtonText = 'second button';
       let onChange = onFirstChange;
@@ -937,9 +994,10 @@ describe('useUseCase', (): void => {
     });
 
     test('`options.watch` should be trigger at child elements', (): void => {
-      const onFirstExtChange = jest.fn();
-      const onSecondExtChange = jest.fn();
-      const onParentExtChange = jest.fn();
+      const onFirstExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+      const onSecondExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+      const onParentExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+
       let onExtChange = onFirstExtChange;
       const firstButtonText = 'first button';
       const secondButtonText = 'second button';
@@ -984,17 +1042,29 @@ describe('useUseCase', (): void => {
       expect(onFirstExtChange).toHaveBeenCalledTimes(0);
       fireEvent.click(screen.getByText(firstButtonText));
       expect(onFirstExtChange).toHaveBeenCalledTimes(1);
-      expect(onFirstExtChange).toHaveBeenLastCalledWith({ ...defaultFile, ext: EXT_1, path: PATH_1 }, defaultFile);
+
+      expect(onFirstExtChange).toHaveBeenLastCalledWith({
+        fieldPaths: ['ext'],
+        newEntity: { ...defaultFile, ext: EXT_1, path: PATH_1 },
+        oldEntity: defaultFile,
+        newValue: EXT_1,
+        oldValue: '',
+      });
+
       expect(onParentExtChange).toHaveBeenCalledTimes(1);
 
       expect(onSecondExtChange).toHaveBeenCalledTimes(0);
       fireEvent.click(screen.getByText(secondButtonText));
       expect(onSecondExtChange).toHaveBeenCalledTimes(1);
-      expect(onSecondExtChange).toHaveBeenLastCalledWith(defaultFile, {
-        ...defaultFile,
-        ext: EXT_1,
-        path: PATH_1,
+
+      expect(onSecondExtChange).toHaveBeenLastCalledWith({
+        fieldPaths: ['ext'],
+        newEntity: defaultFile,
+        oldEntity: { ...defaultFile, ext: EXT_1, path: PATH_1 },
+        newValue: '',
+        oldValue: EXT_1,
       });
+
       expect(onFirstExtChange).toHaveBeenCalledTimes(1);
       expect(onParentExtChange).toHaveBeenCalledTimes(2);
     });
@@ -1002,7 +1072,8 @@ describe('useUseCase', (): void => {
     test('`options.watch` should be trigger in orders', (): void => {
       let changeTimes = 0;
 
-      const updateChangeTimes = (): number => {
+      const updateChangeTimes = (e: EntityWatchEvent<TestFile, string>): number => {
+        void e;
         return ++changeTimes;
       };
 
@@ -1060,6 +1131,469 @@ describe('useUseCase', (): void => {
       expect(onChangeA).toHaveReturnedWith(2);
       expect(onChangeB).toHaveReturnedWith(1);
       expect(onChangeC).toHaveReturnedWith(3);
+    });
+
+    test('`options.watch` should work with array field path of array', (): void => {
+      const onExtChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, string>) => void>();
+      const onSizeChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
+
+      const { result } = renderHook((): CoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
+        return useUseCase({} as TestFieldPathData, fieldPathUseCase, {
+          watch: {
+            'list.ext': onExtChange,
+            'list.size': onSizeChange,
+          },
+        });
+      });
+
+      const { current: cores } = result;
+      const [, { setEntity }] = cores;
+
+      act((): void => {
+        setEntity({ list: [defaultFile] });
+      });
+
+      expect(onExtChange).toHaveBeenCalledTimes(1);
+      expect(onSizeChange).toHaveBeenCalledTimes(1);
+
+      expect(onExtChange).toHaveBeenCalledWith({
+        fieldPaths: ['list', '0', 'ext'],
+        newEntity: { list: [defaultFile] },
+        oldEntity: {},
+        newValue: '',
+        oldValue: void 0,
+      });
+
+      expect(onSizeChange).toHaveBeenCalledWith({
+        fieldPaths: ['list', '0', 'size'],
+        newEntity: { list: [defaultFile] },
+        oldEntity: {},
+        newValue: 0,
+        oldValue: void 0,
+      });
+
+      act((): void => {
+        setEntity({ list: [{ ...defaultFile, ext: EXT_1 }] });
+      });
+
+      expect(onExtChange).toHaveBeenCalledTimes(2);
+      expect(onSizeChange).toHaveBeenCalledTimes(1);
+
+      expect(onExtChange).toHaveBeenCalledWith({
+        fieldPaths: ['list', '0', 'ext'],
+        newEntity: { list: [{ ...defaultFile, ext: EXT_1 }] },
+        oldEntity: { list: [defaultFile] },
+        newValue: EXT_1,
+        oldValue: '',
+      });
+
+      act((): void => {
+        setEntity({
+          list: [
+            { ...defaultFile, ext: EXT_1 },
+            { ...defaultFile, ext: EXT_2 },
+          ],
+        });
+      });
+
+      expect(onExtChange).toHaveBeenCalledTimes(3);
+      expect(onSizeChange).toHaveBeenCalledTimes(2);
+
+      expect(onExtChange).toHaveBeenCalledWith({
+        fieldPaths: ['list', '1', 'ext'],
+        newEntity: {
+          list: [
+            { ...defaultFile, ext: EXT_1 },
+            { ...defaultFile, ext: EXT_2 },
+          ],
+        },
+        oldEntity: { list: [{ ...defaultFile, ext: EXT_1 }] },
+        newValue: EXT_2,
+        oldValue: void 0,
+      });
+
+      expect(onSizeChange).toHaveBeenCalledWith({
+        fieldPaths: ['list', '1', 'size'],
+        newEntity: {
+          list: [
+            { ...defaultFile, ext: EXT_1 },
+            { ...defaultFile, ext: EXT_2 },
+          ],
+        },
+        oldEntity: { list: [{ ...defaultFile, ext: EXT_1 }] },
+        newValue: 0,
+        oldValue: void 0,
+      });
+
+      act((): void => {
+        setEntity({
+          nestedList: [],
+        });
+      });
+
+      expect(onExtChange).toHaveBeenCalledTimes(3);
+      expect(onSizeChange).toHaveBeenCalledTimes(2);
+
+      act((): void => {
+        setEntity((): TestFieldPathData => {
+          return {
+            list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+          };
+        });
+      });
+
+      expect(onExtChange).toHaveBeenCalledTimes(6);
+      expect(onSizeChange).toHaveBeenCalledTimes(3);
+
+      expect(onExtChange).toHaveBeenNthCalledWith(4, {
+        fieldPaths: ['list', '0', 'ext'],
+        newEntity: {
+          list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+        },
+        oldEntity: {
+          list: [
+            { ...defaultFile, ext: EXT_1 },
+            { ...defaultFile, ext: EXT_2 },
+          ],
+          nestedList: [],
+        },
+        newValue: EXT_2,
+        oldValue: EXT_1,
+      });
+
+      expect(onExtChange).toHaveBeenNthCalledWith(5, {
+        fieldPaths: ['list', '1', 'ext'],
+        newEntity: {
+          list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+        },
+        oldEntity: {
+          list: [
+            { ...defaultFile, ext: EXT_1 },
+            { ...defaultFile, ext: EXT_2 },
+          ],
+          nestedList: [],
+        },
+        newValue: EXT_1,
+        oldValue: EXT_2,
+      });
+
+      expect(onExtChange).toHaveBeenNthCalledWith(6, {
+        fieldPaths: ['list', '2', 'ext'],
+        newEntity: {
+          list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+        },
+        oldEntity: {
+          list: [
+            { ...defaultFile, ext: EXT_1 },
+            { ...defaultFile, ext: EXT_2 },
+          ],
+          nestedList: [],
+        },
+        newValue: '',
+        oldValue: void 0,
+      });
+
+      expect(onSizeChange).toHaveBeenCalledWith({
+        fieldPaths: ['list', '2', 'size'],
+        newEntity: {
+          list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+        },
+        oldEntity: {
+          list: [
+            { ...defaultFile, ext: EXT_1 },
+            { ...defaultFile, ext: EXT_2 },
+          ],
+          nestedList: [],
+        },
+        newValue: 0,
+        oldValue: void 0,
+      });
+
+      act((): void => {
+        setEntity((): TestFieldPathData => {
+          return {};
+        });
+      });
+
+      expect(onExtChange).toHaveBeenCalledTimes(9);
+      expect(onSizeChange).toHaveBeenCalledTimes(6);
+
+      expect(onExtChange).toHaveBeenNthCalledWith(7, {
+        fieldPaths: ['list', '0', 'ext'],
+        newEntity: {},
+        oldEntity: {
+          list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+        },
+        newValue: void 0,
+        oldValue: EXT_2,
+      });
+
+      expect(onExtChange).toHaveBeenNthCalledWith(8, {
+        fieldPaths: ['list', '1', 'ext'],
+        newEntity: {},
+        oldEntity: {
+          list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+        },
+        newValue: void 0,
+        oldValue: EXT_1,
+      });
+
+      expect(onExtChange).toHaveBeenNthCalledWith(9, {
+        fieldPaths: ['list', '2', 'ext'],
+        newEntity: {},
+        oldEntity: {
+          list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+        },
+        newValue: void 0,
+        oldValue: '',
+      });
+
+      expect(onSizeChange).toHaveBeenNthCalledWith(4, {
+        fieldPaths: ['list', '0', 'size'],
+        newEntity: {},
+        oldEntity: {
+          list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+        },
+        newValue: void 0,
+        oldValue: 0,
+      });
+
+      expect(onSizeChange).toHaveBeenNthCalledWith(5, {
+        fieldPaths: ['list', '1', 'size'],
+        newEntity: {},
+        oldEntity: {
+          list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+        },
+        newValue: void 0,
+        oldValue: 0,
+      });
+
+      expect(onSizeChange).toHaveBeenNthCalledWith(6, {
+        fieldPaths: ['list', '2', 'size'],
+        newEntity: {},
+        oldEntity: {
+          list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+        },
+        newValue: void 0,
+        oldValue: 0,
+      });
+    });
+
+    test('`options.watch` should work with field path of array length', (): void => {
+      const onEntityLengthChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
+      const onListLengthChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
+
+      const lengthUseCase = (): EntityReducers<TestFieldPathData[]> => {
+        return entityUseCase();
+      };
+
+      const { result } = renderHook((): CoreCollection<TestFieldPathData[], EntityReducers<TestFieldPathData[]>> => {
+        return useUseCase([] as TestFieldPathData[], lengthUseCase, {
+          watch: {
+            length: onEntityLengthChange,
+            'list.length': onListLengthChange,
+          },
+        });
+      });
+
+      const { current: cores } = result;
+      const [, { setEntity }] = cores;
+
+      expect(onEntityLengthChange).toHaveBeenCalledTimes(0);
+      expect(onListLengthChange).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        setEntity([{ list: [defaultFile, defaultFile] }]);
+      });
+
+      expect(onEntityLengthChange).toHaveBeenCalledTimes(1);
+      expect(onListLengthChange).toHaveBeenCalledTimes(1);
+
+      expect(onEntityLengthChange).toHaveBeenCalledWith({
+        fieldPaths: ['length'],
+        newEntity: [{ list: [defaultFile, defaultFile] }],
+        oldEntity: [],
+        newValue: 1,
+        oldValue: 0,
+      });
+
+      expect(onListLengthChange).toHaveBeenCalledWith({
+        fieldPaths: ['0', 'list', 'length'],
+        newEntity: [{ list: [defaultFile, defaultFile] }],
+        oldEntity: [],
+        newValue: 2,
+        oldValue: void 0,
+      });
+    });
+
+    test('`options.watch` should work with field path of nested array', (): void => {
+      const onChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
+
+      const { result } = renderHook((): CoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
+        return useUseCase({} as TestFieldPathData, fieldPathUseCase, {
+          watch: {
+            'nestedList.size': onChange,
+          },
+        });
+      });
+
+      const { current: cores } = result;
+      const [, { setEntity }] = cores;
+
+      expect(onChange).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        setEntity({ nestedList: [[[defaultFile]]] });
+      });
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+
+      expect(onChange).toHaveBeenCalledWith({
+        fieldPaths: ['nestedList', '0', '0', '0', 'size'],
+        newEntity: { nestedList: [[[defaultFile]]] },
+        oldEntity: {},
+        newValue: 0,
+        oldValue: void 0,
+      });
+
+      act((): void => {
+        setEntity({
+          nestedList: [
+            [
+              [
+                { ...defaultFile, size: 100 },
+                { ...defaultFile, size: 200 },
+              ],
+            ],
+            [[{ ...defaultFile, size: 300 }]],
+          ],
+        });
+      });
+
+      expect(onChange).toHaveBeenCalledTimes(4);
+
+      expect(onChange).toHaveBeenNthCalledWith(2, {
+        fieldPaths: ['nestedList', '0', '0', '0', 'size'],
+        newEntity: {
+          nestedList: [
+            [
+              [
+                { ...defaultFile, size: 100 },
+                { ...defaultFile, size: 200 },
+              ],
+            ],
+            [[{ ...defaultFile, size: 300 }]],
+          ],
+        },
+        oldEntity: { nestedList: [[[defaultFile]]] },
+        newValue: 100,
+        oldValue: 0,
+      });
+
+      expect(onChange).toHaveBeenNthCalledWith(3, {
+        fieldPaths: ['nestedList', '0', '0', '1', 'size'],
+        newEntity: {
+          nestedList: [
+            [
+              [
+                { ...defaultFile, size: 100 },
+                { ...defaultFile, size: 200 },
+              ],
+            ],
+            [[{ ...defaultFile, size: 300 }]],
+          ],
+        },
+        oldEntity: { nestedList: [[[defaultFile]]] },
+        newValue: 200,
+        oldValue: void 0,
+      });
+
+      expect(onChange).toHaveBeenNthCalledWith(4, {
+        fieldPaths: ['nestedList', '1', '0', '0', 'size'],
+        newEntity: {
+          nestedList: [
+            [
+              [
+                { ...defaultFile, size: 100 },
+                { ...defaultFile, size: 200 },
+              ],
+            ],
+            [[{ ...defaultFile, size: 300 }]],
+          ],
+        },
+        oldEntity: { nestedList: [[[defaultFile]]] },
+        newValue: 300,
+        oldValue: void 0,
+      });
+    });
+
+    test('`options.watch` should work with field path of object', (): void => {
+      const onExtChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, string | undefined>) => void>();
+      const onSizeChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number | undefined>) => void>();
+
+      const { result } = renderHook((): CoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
+        return useUseCase({} as TestFieldPathData, fieldPathUseCase, {
+          watch: {
+            'obj.file.ext': onExtChange,
+            'obj.file.size': onSizeChange,
+          },
+        });
+      });
+
+      const { current: cores } = result;
+      const [, { setEntity }] = cores;
+
+      expect(onExtChange).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        setEntity({
+          obj: {
+            file: {
+              ext: EXT_1,
+            },
+          },
+        });
+      });
+
+      expect(onExtChange).toHaveBeenCalledTimes(1);
+      expect(onSizeChange).toHaveBeenCalledTimes(0);
+
+      expect(onExtChange).toHaveBeenCalledWith({
+        fieldPaths: ['obj', 'file', 'ext'],
+        newEntity: {
+          obj: {
+            file: {
+              ext: EXT_1,
+            },
+          },
+        },
+        oldEntity: {},
+        newValue: EXT_1,
+        oldValue: void 0,
+      });
+
+      act((): void => {
+        setEntity((): TestFieldPathData => {
+          return {};
+        });
+      });
+
+      expect(onExtChange).toHaveBeenCalledTimes(2);
+      expect(onSizeChange).toHaveBeenCalledTimes(0);
+
+      expect(onExtChange).toHaveBeenCalledWith({
+        fieldPaths: ['obj', 'file', 'ext'],
+        newEntity: {},
+        oldEntity: {
+          obj: {
+            file: {
+              ext: EXT_1,
+            },
+          },
+        },
+        newValue: void 0,
+        oldValue: EXT_1,
+      });
     });
   });
 });

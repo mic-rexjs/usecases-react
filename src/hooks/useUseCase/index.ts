@@ -67,12 +67,12 @@ export const useUseCase: UseCaseHook = <
     return getRootEntity(entityState as T, arg1 as T | EntityGetter<T>, stateless);
   }, [hasInitialEntity, contextEntity, stateless, entityState, arg1]);
 
-  const onEntityChange = useMemoizedFn((newEntity: T, prevEntity: T): void => {
+  const onEntityChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
     if (!stateless) {
       setEntityState(newEntity);
     }
 
-    triggerCallbacks(optionsRefCollection, newEntity, prevEntity);
+    triggerCallbacks(optionsRefCollection, newEntity, oldEntity);
   });
 
   const createReducers = useMemoizedFn((): [TReducers, ContextualEntityReducers<T, TEntityReducers>] => {

@@ -9,7 +9,7 @@ export const triggerCallbacks = <
 >(
   optionsRefCollection: OptionsRefCollection<TOptions>,
   newEntity: T,
-  prevEntity: T
+  oldEntity: T
 ): void => {
   for (let { length: i } = optionsRefCollection; i > 0; i--) {
     const { current: options } = optionsRefCollection[i - 1];
@@ -21,9 +21,9 @@ export const triggerCallbacks = <
     const { onChange, watch } = options;
 
     if (watch) {
-      triggerWatchers(watch, newEntity, prevEntity);
+      triggerWatchers(watch, newEntity, oldEntity);
     }
 
-    onChange?.(newEntity, prevEntity);
+    onChange?.(newEntity, oldEntity);
   }
 };

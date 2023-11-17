@@ -87,8 +87,8 @@ const fileUseCase = <T extends File>({ maxContentLength = 2000 }: FileUseCaseOpt
   const objectReducers = objectUseCase<T>();
 
   const writeFile = function* (entity: T, content: string): EntityGenerator<T, string> {
-    const { content: prevContent } = entity;
-    const newContent = prevContent + content;
+    const { content: oldContent } = entity;
+    const newContent = oldContent + content;
 
     if (newContent.length > maxContentLength) {
       throw 'max length error';

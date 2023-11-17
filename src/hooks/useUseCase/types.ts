@@ -12,22 +12,62 @@ export interface EntityGetter<T> {
   (): T;
 }
 
-export interface EntityWatcher<T> {
-  (newEntity: T, prevEntity: T): void;
+export interface EntityWatchEvent<T, TValue = unknown> {
+  fieldPaths: string[];
+
+  newEntity: T;
+
+  newValue: TValue;
+
+  oldEntity: T;
+
+  oldValue: TValue;
 }
 
-export type EntityWatchMap<T> = T extends unknown[]
-  ? Record<number, EntityWatcher<T>>
+export interface EntityWatcher<T, TValue = unknown> {
+  (event: EntityWatchEvent<T, TValue>): void;
+}
+
+export type PropertyPath<T, K extends keyof T = keyof T & string> = K extends infer TKey
+  ? `${TKey & (string | number)}${'' | DotAccessorFieldPath<T[TKey & keyof T]>}`
+  : never;
+
+export type DotAccessorFieldPath<T> = T extends unknown[]
+  ? '.length' | `${'' | `.${number}`}${DotAccessorFieldPath<T[number]>}`
   : T extends object
-  ? {
-      [K in keyof T]?: EntityWatcher<T>;
-    }
-  : object;
+  ? `.${PropertyPath<T>}`
+  : '';
+
+export type FieldPath<T> = T extends unknown[]
+  ? FieldPath<T[number]> | 'length'
+  : T extends object
+  ? PropertyPath<T>
+  : never;
+
+export type ExtractPropertyType<T, TPath> = TPath extends `${infer TKey}.${infer TSubPath}`
+  ? T extends unknown[]
+    ? ExtractPropertyType<T[number], TKey extends `${number}` ? TSubPath : TPath>
+    : ExtractPropertyType<T[TKey & keyof T], TSubPath>
+  : T extends unknown[]
+  ? TPath extends 'length'
+    ? T[TPath]
+    : TPath extends `${number}`
+    ? T[number]
+    : ExtractPropertyType<T[number], TPath>
+  : T[TPath & keyof T];
+
+export type ExtractFieldType<T, TPath> = TPath extends `${infer TKey}.${infer TSubProperty}`
+  ? ExtractPropertyType<T[TKey & keyof T], TSubProperty>
+  : T[TPath & keyof T];
+
+export type EntityWatchMap<T> = {
+  [K in FieldPath<T>]?: EntityWatcher<T, ExtractFieldType<T, K>>;
+};
 
 export interface UseCaseHookContextualOptions<T> {
   watch?: EntityWatchMap<T>;
 
-  onChange?(newEntity: T, prevEntity: T): void;
+  onChange?(newEntity: T, oldEntity: T): void;
 }
 
 export interface UseCaseHookOwnOptions<T, TUseCaseOptions extends object> extends UseCaseHookContextualOptions<T> {
