@@ -1,5 +1,5 @@
 export { UseCaseFragment } from './components/UseCaseFragment';
-export { useReducer } from './hooks/useReducer';
+export { useReducer, useReducer as useReturnable } from './hooks/useReducer';
 export { useUseCase } from './hooks/useUseCase';
 
 export type { CoreCollection } from './hooks/useUseCase/types';
