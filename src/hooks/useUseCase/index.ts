@@ -15,6 +15,8 @@ import { getRootEntity } from '@/methods/getRootEntity';
 import { useUseCaseContext } from '../useUseCaseContext';
 import { defaultUseCaseContext } from '@/configs/defaultUseCaseContext';
 import { UseCaseMappingContext } from '@/configs/usecaseContextMap/types';
+import { useIsRenderingRef } from '../useIsRenderingRef';
+import { cacheReducerCalls } from '@/methods/cacheReducerCalls';
 
 export const useUseCase: UseCaseHook = <
   T,
@@ -33,6 +35,7 @@ export const useUseCase: UseCaseHook = <
   const [entityState, setEntityState] = useState(hasInitialEntity && !stateless ? (arg1 as T | EntityGetter<T>) : null);
   const deps = ((hasInitialEntity ? arg4 : arg3) || []) as unknown[];
   const depsKey = useCompareDeps(deps);
+  const isRenderingRef = useIsRenderingRef();
 
   const usecase = useConstantFn(
     hasInitialEntity
@@ -103,15 +106,23 @@ export const useUseCase: UseCaseHook = <
 
   const Provider = useProvider(context, entity, entityReducers, optionsRefCollection);
 
+  const enableCache = useMemoizedFn(
+    <TCacheableReducers extends Reducers>(cacheableReducers: TCacheableReducers): TCacheableReducers => {
+      return cacheReducerCalls(cacheableReducers, (): boolean => {
+        return isRenderingRef.current;
+      });
+    }
+  );
+
   const coreCollection = useCreation((): CoreCollection<T, TEntityReducers, UseCaseProvider | null> => {
-    return [entity, entityReducers, hasInitialEntity ? Provider : null];
-  }, [hasInitialEntity, entity, entityReducers, Provider]);
+    return [entity, enableCache(entityReducers), hasInitialEntity ? Provider : null];
+  }, [hasInitialEntity, entity, entityReducers, Provider, enableCache]);
 
   return useCreation((): TReducers | CoreCollection<T, TEntityReducers, UseCaseProvider | null> => {
     if (isContextMode) {
       return coreCollection;
     }
 
-    return reducers as TReducers;
-  }, [isContextMode, reducers, coreCollection]);
+    return enableCache(reducers as TReducers);
+  }, [isContextMode, reducers, coreCollection, enableCache]);
 };

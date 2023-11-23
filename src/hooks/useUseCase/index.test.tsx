@@ -7,10 +7,10 @@ import {
   ObjectReducers,
   entityUseCase,
 } from '@mic-rexjs/usecases';
-import { describe, expect, jest, test } from '@jest/globals';
+import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import { renderHook, act, render, fireEvent, screen } from '@testing-library/react';
 import { useUseCase } from '.';
-import { useDeepCompareEffect, useMemoizedFn, useUpdate, useUpdateEffect } from 'ahooks';
+import { useDeepCompareEffect, useMemoizedFn, useMount, useUpdate, useUpdateEffect } from 'ahooks';
 import { Dispatch, Fragment, useEffect, useRef, useState } from 'react';
 import { CoreCollection, EntityWatchEvent } from './types';
 
@@ -53,6 +53,13 @@ type MathReducers = Reducers<{
 
   subtraction(value1: number, value2: number): number;
 }>;
+
+type StringReducers = EntityReducers<
+  string,
+  {
+    add(entity: string, substring: string): string;
+  }
+>;
 
 interface CommonProps {
   onUpdate?(): void;
@@ -135,6 +142,10 @@ const fileUseCase = <T extends TestFile>(options: FileUseCaseOptions = {}): Test
   return { ...entityReducers, init, setPath, readFile, isImage };
 };
 
+const subtractionReducer = jest.fn((value1: number, value2: number): number => {
+  return value1 - value2;
+});
+
 const mathUseCase = (options: MathUseCaseOptions = {}): MathReducers => {
   const { extraValue = 0 } = options;
 
@@ -142,11 +153,7 @@ const mathUseCase = (options: MathUseCaseOptions = {}): MathReducers => {
     return value1 + value2 + extraValue;
   };
 
-  const subtraction = (value1: number, value2: number): number => {
-    return value1 - value2;
-  };
-
-  return { add, subtraction };
+  return { add, subtraction: subtractionReducer };
 };
 
 const fieldPathUseCase = (): EntityReducers<TestFieldPathData> => {
@@ -262,6 +269,10 @@ const useDeepCompareUpdate = (callback: VoidFunction, deps: unknown[]): void => 
     deps
   );
 };
+
+beforeEach((): void => {
+  subtractionReducer.mockClear();
+});
 
 describe('useUseCase', (): void => {
   describe('`useUseCase` should work with 2+ arguments on provider mode', (): void => {
@@ -444,6 +455,148 @@ describe('useUseCase', (): void => {
       expect(result.current[1]).not.toBe(reducers);
       expect(result.current[1].init).not.toBe(init);
       expect(onUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    test('reducer call should be cached if component is at rendering phase', (): void => {
+      const buttonText = 'button';
+
+      const addReducer = jest.fn((entity: string, substring: string): string => {
+        return entity + substring;
+      });
+
+      const stringUseCase = (): StringReducers => {
+        const entityReducers = entityUseCase<string>();
+
+        return {
+          ...entityReducers,
+          add: addReducer,
+        };
+      };
+
+      const CacheTestComponent = (): React.ReactElement => {
+        const [, { add }] = useUseCase('', stringUseCase);
+        const update = useUpdate();
+
+        const onClick = (): void => {
+          update();
+        };
+
+        add('x');
+
+        return <button onClick={onClick}>{buttonText}</button>;
+      };
+
+      render(<CacheTestComponent />);
+
+      expect(addReducer).toHaveBeenCalledTimes(1);
+      expect(addReducer).toHaveBeenCalledWith('', 'x');
+      expect(addReducer).toHaveReturnedWith('x');
+
+      fireEvent.click(screen.getByText(buttonText));
+      expect(addReducer).toHaveBeenCalledTimes(1);
+    });
+
+    test('reducer call should not be cached if component is not at rendering phase', (): void => {
+      const buttonText = 'button';
+
+      const addReducer = jest.fn((entity: string, substring: string): string => {
+        return entity + substring;
+      });
+
+      const stringUseCase = (): StringReducers => {
+        const entityReducers = entityUseCase<string>();
+
+        return {
+          ...entityReducers,
+          add: addReducer,
+        };
+      };
+
+      const CacheTestComponent = (): React.ReactElement => {
+        const [, { add }] = useUseCase('', stringUseCase);
+
+        const onClick = (): void => {
+          add('x');
+        };
+
+        useMount((): void => {
+          add('x');
+          add('x');
+        });
+
+        return <button onClick={onClick}>{buttonText}</button>;
+      };
+
+      render(<CacheTestComponent />);
+
+      expect(addReducer).toHaveBeenCalledTimes(2);
+      expect(addReducer).toHaveBeenNthCalledWith(1, '', 'x');
+      expect(addReducer).toHaveBeenNthCalledWith(2, '', 'x');
+
+      fireEvent.click(screen.getByText(buttonText));
+      expect(addReducer).toHaveBeenCalledTimes(3);
+      expect(addReducer).toHaveBeenNthCalledWith(3, '', 'x');
+    });
+
+    test('reducer call should not be cached if entity or parameters have changed', (): void => {
+      let count = 0;
+      let addedText = 'x';
+      const setButtonText = 'button';
+      const updateButtonText = 'update';
+
+      const addReducer = jest.fn((entity: string, substring: string): string => {
+        return entity + substring;
+      });
+
+      const stringUseCase = (): StringReducers => {
+        const entityReducers = entityUseCase<string>();
+
+        return {
+          ...entityReducers,
+          add: addReducer,
+        };
+      };
+
+      const CacheTestComponent = (): React.ReactElement => {
+        const [, { add, setEntity }] = useUseCase('', stringUseCase);
+        const update = useUpdate();
+
+        add(addedText);
+
+        const onSet = (): void => {
+          setEntity(`${count++}`);
+        };
+
+        const onUpdate = (): void => {
+          update();
+        };
+
+        return (
+          <div>
+            <button onClick={onSet}>{setButtonText}</button>
+            <button onClick={onUpdate}>{updateButtonText}</button>
+          </div>
+        );
+      };
+
+      render(<CacheTestComponent />);
+
+      expect(addReducer).toHaveBeenCalledTimes(1);
+      expect(addReducer).toHaveBeenCalledWith('', 'x');
+
+      fireEvent.click(screen.getByText(setButtonText));
+      expect(addReducer).toHaveBeenCalledTimes(2);
+      expect(addReducer).toHaveBeenCalledWith('0', 'x');
+      expect(addReducer).toHaveReturnedWith('0x');
+
+      addedText = 'y';
+      fireEvent.click(screen.getByText(updateButtonText));
+      expect(addReducer).toHaveBeenCalledTimes(3);
+      expect(addReducer).toHaveBeenCalledWith('0', 'y');
+      expect(addReducer).toHaveReturnedWith('0y');
+
+      fireEvent.click(screen.getByText(updateButtonText));
+      expect(addReducer).toHaveBeenCalledTimes(3);
     });
 
     test('`options.stateless` should not generate new reducers when `yeild entity`', (): void => {
@@ -711,286 +864,6 @@ describe('useUseCase', (): void => {
 
       expect(onUpdate).toHaveBeenCalledTimes(0);
       expect(onDeepUpdate).toHaveBeenCalledTimes(0);
-    });
-  });
-
-  describe('`useUseCase` should work with 1+ arguments on non-entity mode', (): void => {
-    test('`entity` should equal `defaultFile`', (): void => {
-      const { result } = renderHook((): MathReducers => {
-        return useUseCase(mathUseCase);
-      });
-
-      const { current: reducers } = result;
-
-      expect(Array.isArray(reducers)).toBe(false);
-    });
-
-    test('returned reducer should work', (): void => {
-      const { result } = renderHook((): MathReducers => {
-        return useUseCase(mathUseCase);
-      });
-
-      const { current: reducers } = result;
-      const { add } = reducers;
-
-      expect(add(1, 2)).toBe(3);
-    });
-
-    test('`options.extraValue` should be added after call `add` method', (): void => {
-      const { result } = renderHook((): MathReducers => {
-        return useUseCase(mathUseCase, { extraValue: 5 });
-      });
-
-      const { current: reducers } = result;
-      const { add } = reducers;
-
-      expect(add(1, 2)).toBe(8);
-    });
-
-    test('when `options` has changed, it should not trigger update', (): void => {
-      const onUpdate = jest.fn();
-      const onDeepUpdate = jest.fn();
-
-      const { result } = renderHook((): Dispatch<number> => {
-        const [extraValue, setExtraValue] = useState(0);
-        const reducers = useUseCase(mathUseCase, { extraValue });
-
-        useUpdateEffect((): void => {
-          onUpdate();
-        }, [reducers]);
-
-        useDeepCompareUpdate((): void => {
-          onDeepUpdate();
-        }, [reducers]);
-
-        return setExtraValue;
-      });
-
-      expect(onUpdate).toHaveBeenCalledTimes(0);
-      expect(onDeepUpdate).toHaveBeenCalledTimes(0);
-
-      act((): void => {
-        result.current(3);
-      });
-
-      expect(onUpdate).toHaveBeenCalledTimes(0);
-      expect(onDeepUpdate).toHaveBeenCalledTimes(0);
-    });
-
-    test('when `deps` change, it should update reducers', (): void => {
-      const onUpdate = jest.fn();
-      const onDeepUpdate = jest.fn();
-
-      const { result } = renderHook((): Dispatch<number> => {
-        const [extraValue, setExtraValue] = useState(0);
-        const reducers = useUseCase(mathUseCase, { extraValue }, [extraValue]);
-
-        useUpdateEffect((): void => {
-          onUpdate();
-        }, [reducers]);
-
-        useDeepCompareUpdate((): void => {
-          onDeepUpdate();
-        }, [reducers]);
-
-        return setExtraValue;
-      });
-
-      expect(onUpdate).toHaveBeenCalledTimes(0);
-      expect(onDeepUpdate).toHaveBeenCalledTimes(0);
-
-      act((): void => {
-        result.current(3);
-      });
-
-      expect(onUpdate).toHaveBeenCalledTimes(1);
-      expect(onDeepUpdate).toHaveBeenCalledTimes(1);
-    });
-
-    test('empty `deps` should not update reducers', (): void => {
-      const onUpdate = jest.fn();
-      const onDeepUpdate = jest.fn();
-
-      const { result } = renderHook((): Dispatch<number> => {
-        const [extraValue, setExtraValue] = useState(0);
-        const reducers = useUseCase(mathUseCase, { extraValue }, []);
-
-        useUpdateEffect((): void => {
-          onUpdate();
-        }, [reducers]);
-
-        useDeepCompareUpdate((): void => {
-          onDeepUpdate();
-        }, [reducers]);
-
-        return setExtraValue;
-      });
-
-      expect(onUpdate).toHaveBeenCalledTimes(0);
-      expect(onDeepUpdate).toHaveBeenCalledTimes(0);
-
-      act((): void => {
-        result.current(3);
-      });
-
-      expect(onUpdate).toHaveBeenCalledTimes(0);
-      expect(onDeepUpdate).toHaveBeenCalledTimes(0);
-    });
-
-    test('should not trigger update', (): void => {
-      const onUpdate = jest.fn();
-
-      render(<MathParent onUpdate={onUpdate} />);
-      fireEvent.click(screen.getByText(PARENT_BUTTON_TEXT));
-      expect(onUpdate).toHaveBeenCalledTimes(0);
-    });
-  });
-
-  describe('`useUseCase` should work with 1+ arguments on context mode', (): void => {
-    test('should work within <Child /> which it is under <Parent />', (): void => {
-      const textPrefix = '>>';
-
-      const onUpdate = jest.fn();
-      const onPathChange = jest.fn();
-      const onUndefinedEntity = jest.fn();
-
-      const onSetPath = jest.fn((): string => {
-        return PATH_1;
-      });
-
-      render(
-        <div>
-          <Parent onSetPath={onSetPath}>
-            <Child
-              textPrefix={textPrefix}
-              onUpdate={onUpdate}
-              onPathChange={onPathChange}
-              onUndefinedEntity={onUndefinedEntity}
-            />
-          </Parent>
-        </div>
-      );
-
-      fireEvent.click(screen.getByText(PARENT_BUTTON_TEXT));
-      expect(onSetPath).toHaveBeenCalledTimes(1);
-      expect(onUpdate).toHaveBeenCalledTimes(1);
-      expect(onPathChange).toHaveBeenCalledWith(PATH_1);
-
-      fireEvent.click(screen.getByText(textPrefix + CHILD_BUTTON_TEXT));
-      expect(onSetPath).toHaveBeenCalledTimes(1);
-      expect(onUpdate).toHaveBeenCalledTimes(2);
-      expect(onPathChange).toHaveBeenCalledWith('');
-      expect(onUndefinedEntity).toHaveBeenCalledTimes(0);
-    });
-
-    test('`options.onChange` event should be trigger at child elements', (): void => {
-      const onFirstChange = jest.fn();
-      const onSecondChange = jest.fn();
-      const onParentPathChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
-      const firstButtonText = 'first button';
-      const secondButtonText = 'second button';
-      let onChange = onFirstChange;
-
-      const A = (): React.ReactElement => {
-        useUseCase(fileUseCase, { onChange });
-
-        return <Fragment />;
-      };
-
-      const B = (): React.ReactElement => {
-        const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, {
-          onChange: onParentPathChange,
-        });
-
-        const onFirstClick = (): void => {
-          setPath(PATH_1);
-          onChange = onSecondChange;
-        };
-
-        const onSecondClick = (): void => {
-          setPath('');
-        };
-
-        return (
-          <Provider>
-            <A />
-            <button onClick={onFirstClick}>{firstButtonText}</button>
-            <button onClick={onSecondClick}>{secondButtonText}</button>
-          </Provider>
-        );
-      };
-
-      render(<B />);
-
-      expect(onFirstChange).toHaveBeenCalledTimes(0);
-      fireEvent.click(screen.getByText(firstButtonText));
-      expect(onFirstChange).toHaveBeenCalledTimes(1);
-      expect(onFirstChange).toHaveBeenLastCalledWith({ ...defaultFile, ext: EXT_1, path: PATH_1 }, defaultFile);
-      expect(onParentPathChange).toHaveBeenCalledTimes(1);
-
-      expect(onSecondChange).toHaveBeenCalledTimes(0);
-      fireEvent.click(screen.getByText(secondButtonText));
-      expect(onSecondChange).toHaveBeenCalledTimes(1);
-      expect(onSecondChange).toHaveBeenLastCalledWith(defaultFile, {
-        ...defaultFile,
-        ext: EXT_1,
-        path: PATH_1,
-      });
-      expect(onFirstChange).toHaveBeenCalledTimes(1);
-      expect(onParentPathChange).toHaveBeenCalledTimes(2);
-    });
-
-    test('`options.onChange` event should be trigger in orders', (): void => {
-      let changeTimes = 0;
-
-      const updateChangeTimes = (): number => {
-        return ++changeTimes;
-      };
-
-      const onChangeA = jest.fn(updateChangeTimes);
-      const onChangeB = jest.fn(updateChangeTimes);
-      const onChangeC = jest.fn(updateChangeTimes);
-
-      const buttonText = 'my button';
-
-      const A = ({ children }: React.PropsWithChildren): React.ReactElement => {
-        useUseCase(fileUseCase, { onChange: onChangeA });
-
-        return <Fragment>{children}</Fragment>;
-      };
-
-      const B = (): React.ReactElement => {
-        useUseCase(fileUseCase, { onChange: onChangeB });
-
-        return <Fragment />;
-      };
-
-      const C = (): React.ReactElement => {
-        const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, {
-          onChange: onChangeC,
-        });
-
-        const onFirstClick = (): void => {
-          setPath(PATH_1);
-        };
-
-        return (
-          <Provider>
-            <A>
-              <B />
-            </A>
-            <button onClick={onFirstClick}>{buttonText}</button>
-          </Provider>
-        );
-      };
-
-      render(<C />);
-
-      expect(changeTimes).toBe(0);
-      fireEvent.click(screen.getByText(buttonText));
-      expect(onChangeA).toHaveReturnedWith(2);
-      expect(onChangeB).toHaveReturnedWith(1);
-      expect(onChangeC).toHaveReturnedWith(3);
     });
 
     test('`options.watch` should be trigger at child elements', (): void => {
@@ -1594,6 +1467,548 @@ describe('useUseCase', (): void => {
         newValue: void 0,
         oldValue: EXT_1,
       });
+    });
+  });
+
+  describe('`useUseCase` should work with 1+ arguments on non-entity mode', (): void => {
+    test('`entity` should equal `defaultFile`', (): void => {
+      const { result } = renderHook((): MathReducers => {
+        return useUseCase(mathUseCase);
+      });
+
+      const { current: reducers } = result;
+
+      expect(Array.isArray(reducers)).toBe(false);
+    });
+
+    test('returned reducer should work', (): void => {
+      const { result } = renderHook((): MathReducers => {
+        return useUseCase(mathUseCase);
+      });
+
+      const { current: reducers } = result;
+      const { add } = reducers;
+
+      expect(add(1, 2)).toBe(3);
+    });
+
+    test('reducer call should be cached if component is at rendering phase', (): void => {
+      const buttonText = 'button';
+
+      const CacheTestComponent = (): React.ReactElement => {
+        const { subtraction } = useUseCase(mathUseCase);
+        const update = useUpdate();
+
+        const onClick = (): void => {
+          update();
+        };
+
+        subtraction(5, 3);
+
+        return <button onClick={onClick}>{buttonText}</button>;
+      };
+
+      render(<CacheTestComponent />);
+
+      expect(subtractionReducer).toHaveBeenCalledTimes(1);
+      expect(subtractionReducer).toHaveBeenCalledWith(5, 3);
+      expect(subtractionReducer).toHaveReturnedWith(2);
+
+      fireEvent.click(screen.getByText(buttonText));
+      expect(subtractionReducer).toHaveBeenCalledTimes(1);
+    });
+
+    test('reducer call should not be cached if component is not at rendering phase', (): void => {
+      const buttonText = 'button';
+
+      const CacheTestComponent = (): React.ReactElement => {
+        const { subtraction } = useUseCase(mathUseCase);
+
+        const onClick = (): void => {
+          subtraction(5, 3);
+        };
+
+        useMount((): void => {
+          subtraction(5, 3);
+          subtraction(5, 3);
+        });
+
+        return <button onClick={onClick}>{buttonText}</button>;
+      };
+
+      render(<CacheTestComponent />);
+
+      expect(subtractionReducer).toHaveBeenCalledTimes(2);
+      expect(subtractionReducer).toHaveBeenNthCalledWith(1, 5, 3);
+      expect(subtractionReducer).toHaveNthReturnedWith(1, 2);
+      expect(subtractionReducer).toHaveBeenNthCalledWith(2, 5, 3);
+      expect(subtractionReducer).toHaveNthReturnedWith(2, 2);
+
+      fireEvent.click(screen.getByText(buttonText));
+      expect(subtractionReducer).toHaveBeenCalledTimes(3);
+      expect(subtractionReducer).toHaveBeenNthCalledWith(3, 5, 3);
+      expect(subtractionReducer).toHaveNthReturnedWith(3, 2);
+    });
+
+    test('reducer call should not be cached if parameters have changed', (): void => {
+      let count = 0;
+      const buttonText = 'button';
+
+      const StringUseCaseTestComponent = (): React.ReactElement => {
+        const { subtraction } = useUseCase(mathUseCase);
+        const update = useUpdate();
+
+        subtraction(5, count++);
+
+        const onUpdate = (): void => {
+          update();
+        };
+
+        return (
+          <div>
+            <button onClick={onUpdate}>{buttonText}</button>
+          </div>
+        );
+      };
+
+      render(<StringUseCaseTestComponent />);
+
+      expect(subtractionReducer).toHaveBeenCalledTimes(1);
+      expect(subtractionReducer).toHaveBeenCalledWith(5, 0);
+
+      fireEvent.click(screen.getByText(buttonText));
+      expect(subtractionReducer).toHaveBeenCalledTimes(2);
+      expect(subtractionReducer).toHaveBeenCalledWith(5, 1);
+      expect(subtractionReducer).toHaveReturnedWith(4);
+    });
+
+    test('`options.extraValue` should be added after call `add` method', (): void => {
+      const { result } = renderHook((): MathReducers => {
+        return useUseCase(mathUseCase, { extraValue: 5 });
+      });
+
+      const { current: reducers } = result;
+      const { add } = reducers;
+
+      expect(add(1, 2)).toBe(8);
+    });
+
+    test('when `options` has changed, it should not trigger update', (): void => {
+      const onUpdate = jest.fn();
+      const onDeepUpdate = jest.fn();
+
+      const { result } = renderHook((): Dispatch<number> => {
+        const [extraValue, setExtraValue] = useState(0);
+        const reducers = useUseCase(mathUseCase, { extraValue });
+
+        useUpdateEffect((): void => {
+          onUpdate();
+        }, [reducers]);
+
+        useDeepCompareUpdate((): void => {
+          onDeepUpdate();
+        }, [reducers]);
+
+        return setExtraValue;
+      });
+
+      expect(onUpdate).toHaveBeenCalledTimes(0);
+      expect(onDeepUpdate).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        result.current(3);
+      });
+
+      expect(onUpdate).toHaveBeenCalledTimes(0);
+      expect(onDeepUpdate).toHaveBeenCalledTimes(0);
+    });
+
+    test('when `deps` change, it should update reducers', (): void => {
+      const onUpdate = jest.fn();
+      const onDeepUpdate = jest.fn();
+
+      const { result } = renderHook((): Dispatch<number> => {
+        const [extraValue, setExtraValue] = useState(0);
+        const reducers = useUseCase(mathUseCase, { extraValue }, [extraValue]);
+
+        useUpdateEffect((): void => {
+          onUpdate();
+        }, [reducers]);
+
+        useDeepCompareUpdate((): void => {
+          onDeepUpdate();
+        }, [reducers]);
+
+        return setExtraValue;
+      });
+
+      expect(onUpdate).toHaveBeenCalledTimes(0);
+      expect(onDeepUpdate).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        result.current(3);
+      });
+
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onDeepUpdate).toHaveBeenCalledTimes(1);
+    });
+
+    test('empty `deps` should not update reducers', (): void => {
+      const onUpdate = jest.fn();
+      const onDeepUpdate = jest.fn();
+
+      const { result } = renderHook((): Dispatch<number> => {
+        const [extraValue, setExtraValue] = useState(0);
+        const reducers = useUseCase(mathUseCase, { extraValue }, []);
+
+        useUpdateEffect((): void => {
+          onUpdate();
+        }, [reducers]);
+
+        useDeepCompareUpdate((): void => {
+          onDeepUpdate();
+        }, [reducers]);
+
+        return setExtraValue;
+      });
+
+      expect(onUpdate).toHaveBeenCalledTimes(0);
+      expect(onDeepUpdate).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        result.current(3);
+      });
+
+      expect(onUpdate).toHaveBeenCalledTimes(0);
+      expect(onDeepUpdate).toHaveBeenCalledTimes(0);
+    });
+
+    test('should not trigger update', (): void => {
+      const onUpdate = jest.fn();
+
+      render(<MathParent onUpdate={onUpdate} />);
+      fireEvent.click(screen.getByText(PARENT_BUTTON_TEXT));
+      expect(onUpdate).toHaveBeenCalledTimes(0);
+    });
+  });
+
+  describe('`useUseCase` should work with 1+ arguments on context mode', (): void => {
+    test('should work within <Child /> which it is under <Parent />', (): void => {
+      const textPrefix = '>>';
+
+      const onUpdate = jest.fn();
+      const onPathChange = jest.fn();
+      const onUndefinedEntity = jest.fn();
+
+      const onSetPath = jest.fn((): string => {
+        return PATH_1;
+      });
+
+      render(
+        <div>
+          <Parent onSetPath={onSetPath}>
+            <Child
+              textPrefix={textPrefix}
+              onUpdate={onUpdate}
+              onPathChange={onPathChange}
+              onUndefinedEntity={onUndefinedEntity}
+            />
+          </Parent>
+        </div>
+      );
+
+      fireEvent.click(screen.getByText(PARENT_BUTTON_TEXT));
+      expect(onSetPath).toHaveBeenCalledTimes(1);
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onPathChange).toHaveBeenCalledWith(PATH_1);
+
+      fireEvent.click(screen.getByText(textPrefix + CHILD_BUTTON_TEXT));
+      expect(onSetPath).toHaveBeenCalledTimes(1);
+      expect(onUpdate).toHaveBeenCalledTimes(2);
+      expect(onPathChange).toHaveBeenCalledWith('');
+      expect(onUndefinedEntity).toHaveBeenCalledTimes(0);
+    });
+
+    test('reducer call should be cached if component is at rendering phase in child components', (): void => {
+      const buttonText = 'button';
+
+      const addReducer = jest.fn((entity: string, substring: string): string => {
+        return entity + substring;
+      });
+
+      const stringUseCase = (): StringReducers => {
+        const entityReducers = entityUseCase<string>();
+
+        return {
+          ...entityReducers,
+          add: addReducer,
+        };
+      };
+
+      const A = (): React.ReactElement => {
+        const [, { add }] = useUseCase(stringUseCase);
+        const update = useUpdate();
+
+        const onClick = (): void => {
+          update();
+        };
+
+        add('x');
+
+        return <button onClick={onClick}>{buttonText}</button>;
+      };
+
+      const B = (): React.ReactElement => {
+        const [, , Provider] = useUseCase('', stringUseCase);
+
+        return (
+          <Provider>
+            <A />
+          </Provider>
+        );
+      };
+
+      render(<B />);
+
+      expect(addReducer).toHaveBeenCalledTimes(1);
+      expect(addReducer).toHaveBeenCalledWith('', 'x');
+      expect(addReducer).toHaveReturnedWith('x');
+
+      fireEvent.click(screen.getByText(buttonText));
+      expect(addReducer).toHaveBeenCalledTimes(1);
+    });
+
+    test('reducer call should not be cached if component is not at rendering phase in child components', (): void => {
+      const buttonText = 'button';
+
+      const addReducer = jest.fn((entity: string, substring: string): string => {
+        return entity + substring;
+      });
+
+      const stringUseCase = (): StringReducers => {
+        const entityReducers = entityUseCase<string>();
+
+        return {
+          ...entityReducers,
+          add: addReducer,
+        };
+      };
+
+      const A = (): React.ReactElement => {
+        const [, { add }] = useUseCase(stringUseCase);
+
+        const onClick = (): void => {
+          add('x');
+        };
+
+        useMount((): void => {
+          add('x');
+          add('x');
+        });
+
+        return <button onClick={onClick}>{buttonText}</button>;
+      };
+
+      const B = (): React.ReactElement => {
+        const [, , Provider] = useUseCase('', stringUseCase);
+
+        return (
+          <Provider>
+            <A />
+          </Provider>
+        );
+      };
+
+      render(<B />);
+
+      expect(addReducer).toHaveBeenCalledTimes(2);
+      expect(addReducer).toHaveBeenNthCalledWith(1, '', 'x');
+      expect(addReducer).toHaveBeenNthCalledWith(2, '', 'x');
+
+      fireEvent.click(screen.getByText(buttonText));
+      expect(addReducer).toHaveBeenCalledTimes(3);
+      expect(addReducer).toHaveBeenNthCalledWith(3, '', 'x');
+    });
+
+    test('reducer call should not be cached if entity or parameters have changed in child components', (): void => {
+      let count = 0;
+      let addedText = 'x';
+      const setButtonText = 'button';
+      const updateButtonText = 'update';
+
+      const addReducer = jest.fn((entity: string, substring: string): string => {
+        return entity + substring;
+      });
+
+      const stringUseCase = (): StringReducers => {
+        const entityReducers = entityUseCase<string>();
+
+        return {
+          ...entityReducers,
+          add: addReducer,
+        };
+      };
+
+      const A = (): React.ReactElement => {
+        const [, { add, setEntity }] = useUseCase(stringUseCase);
+        const update = useUpdate();
+
+        add(addedText);
+
+        const onSet = (): void => {
+          setEntity(`${count++}`);
+        };
+
+        const onUpdate = (): void => {
+          update();
+        };
+
+        return (
+          <div>
+            <button onClick={onSet}>{setButtonText}</button>
+            <button onClick={onUpdate}>{updateButtonText}</button>
+          </div>
+        );
+      };
+
+      const B = (): React.ReactElement => {
+        const [, , Provider] = useUseCase('', stringUseCase);
+
+        return (
+          <Provider>
+            <A />
+          </Provider>
+        );
+      };
+
+      render(<B />);
+
+      expect(addReducer).toHaveBeenCalledTimes(1);
+      expect(addReducer).toHaveBeenCalledWith('', 'x');
+
+      fireEvent.click(screen.getByText(setButtonText));
+      expect(addReducer).toHaveBeenCalledTimes(2);
+      expect(addReducer).toHaveBeenCalledWith('0', 'x');
+      expect(addReducer).toHaveReturnedWith('0x');
+
+      addedText = 'y';
+      fireEvent.click(screen.getByText(updateButtonText));
+      expect(addReducer).toHaveBeenCalledTimes(3);
+      expect(addReducer).toHaveBeenCalledWith('0', 'y');
+      expect(addReducer).toHaveReturnedWith('0y');
+
+      fireEvent.click(screen.getByText(updateButtonText));
+      expect(addReducer).toHaveBeenCalledTimes(3);
+    });
+
+    test('`options.onChange` event should be trigger at child elements', (): void => {
+      const onFirstChange = jest.fn();
+      const onSecondChange = jest.fn();
+      const onParentPathChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
+      const firstButtonText = 'first button';
+      const secondButtonText = 'second button';
+      let onChange = onFirstChange;
+
+      const A = (): React.ReactElement => {
+        useUseCase(fileUseCase, { onChange });
+
+        return <Fragment />;
+      };
+
+      const B = (): React.ReactElement => {
+        const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, {
+          onChange: onParentPathChange,
+        });
+
+        const onFirstClick = (): void => {
+          setPath(PATH_1);
+          onChange = onSecondChange;
+        };
+
+        const onSecondClick = (): void => {
+          setPath('');
+        };
+
+        return (
+          <Provider>
+            <A />
+            <button onClick={onFirstClick}>{firstButtonText}</button>
+            <button onClick={onSecondClick}>{secondButtonText}</button>
+          </Provider>
+        );
+      };
+
+      render(<B />);
+
+      expect(onFirstChange).toHaveBeenCalledTimes(0);
+      fireEvent.click(screen.getByText(firstButtonText));
+      expect(onFirstChange).toHaveBeenCalledTimes(1);
+      expect(onFirstChange).toHaveBeenLastCalledWith({ ...defaultFile, ext: EXT_1, path: PATH_1 }, defaultFile);
+      expect(onParentPathChange).toHaveBeenCalledTimes(1);
+
+      expect(onSecondChange).toHaveBeenCalledTimes(0);
+      fireEvent.click(screen.getByText(secondButtonText));
+      expect(onSecondChange).toHaveBeenCalledTimes(1);
+      expect(onSecondChange).toHaveBeenLastCalledWith(defaultFile, {
+        ...defaultFile,
+        ext: EXT_1,
+        path: PATH_1,
+      });
+      expect(onFirstChange).toHaveBeenCalledTimes(1);
+      expect(onParentPathChange).toHaveBeenCalledTimes(2);
+    });
+
+    test('`options.onChange` event should be trigger in orders', (): void => {
+      let changeTimes = 0;
+
+      const updateChangeTimes = (): number => {
+        return ++changeTimes;
+      };
+
+      const onChangeA = jest.fn(updateChangeTimes);
+      const onChangeB = jest.fn(updateChangeTimes);
+      const onChangeC = jest.fn(updateChangeTimes);
+
+      const buttonText = 'my button';
+
+      const A = ({ children }: React.PropsWithChildren): React.ReactElement => {
+        useUseCase(fileUseCase, { onChange: onChangeA });
+
+        return <Fragment>{children}</Fragment>;
+      };
+
+      const B = (): React.ReactElement => {
+        useUseCase(fileUseCase, { onChange: onChangeB });
+
+        return <Fragment />;
+      };
+
+      const C = (): React.ReactElement => {
+        const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, {
+          onChange: onChangeC,
+        });
+
+        const onFirstClick = (): void => {
+          setPath(PATH_1);
+        };
+
+        return (
+          <Provider>
+            <A>
+              <B />
+            </A>
+            <button onClick={onFirstClick}>{buttonText}</button>
+          </Provider>
+        );
+      };
+
+      render(<C />);
+
+      expect(changeTimes).toBe(0);
+      fireEvent.click(screen.getByText(buttonText));
+      expect(onChangeA).toHaveReturnedWith(2);
+      expect(onChangeB).toHaveReturnedWith(1);
+      expect(onChangeC).toHaveReturnedWith(3);
     });
   });
 });
