@@ -1492,7 +1492,7 @@ describe('useUseCase', (): void => {
       expect(add(1, 2)).toBe(3);
     });
 
-    test('reducer call should be cached if component is at rendering phase', (): void => {
+    test('reducer call should not be cached if component is at rendering phase', (): void => {
       const buttonText = 'button';
 
       const CacheTestComponent = (): React.ReactElement => {
@@ -1515,7 +1515,10 @@ describe('useUseCase', (): void => {
       expect(subtractionReducer).toHaveReturnedWith(2);
 
       fireEvent.click(screen.getByText(buttonText));
-      expect(subtractionReducer).toHaveBeenCalledTimes(1);
+      expect(subtractionReducer).toHaveBeenCalledTimes(2);
+
+      fireEvent.click(screen.getByText(buttonText));
+      expect(subtractionReducer).toHaveBeenCalledTimes(3);
     });
 
     test('reducer call should not be cached if component is not at rendering phase', (): void => {

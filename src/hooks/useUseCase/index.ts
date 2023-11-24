@@ -106,23 +106,26 @@ export const useUseCase: UseCaseHook = <
 
   const Provider = useProvider(context, entity, entityReducers, optionsRefCollection);
 
-  const enableCache = useMemoizedFn(
-    <TCacheableReducers extends Reducers>(cacheableReducers: TCacheableReducers): TCacheableReducers => {
-      return cacheReducerCalls(cacheableReducers, (): boolean => {
-        return isRenderingRef.current;
-      });
+  const createCoreCollection = useMemoizedFn(
+    (
+      coreEntity: T,
+      coreReducers: ContextualEntityReducers<T, TEntityReducers>
+    ): CoreCollection<T, TEntityReducers, UseCaseProvider | null> => {
+      return [
+        coreEntity,
+        cacheReducerCalls(coreReducers, (): boolean => {
+          return isRenderingRef.current;
+        }),
+        hasInitialEntity ? Provider : null,
+      ];
     }
   );
 
-  const coreCollection = useCreation((): CoreCollection<T, TEntityReducers, UseCaseProvider | null> => {
-    return [entity, enableCache(entityReducers), hasInitialEntity ? Provider : null];
-  }, [hasInitialEntity, entity, entityReducers, Provider, enableCache]);
-
   return useCreation((): TReducers | CoreCollection<T, TEntityReducers, UseCaseProvider | null> => {
     if (isContextMode) {
-      return coreCollection;
+      return createCoreCollection(entity, entityReducers);
     }
 
-    return enableCache(reducers as TReducers);
-  }, [isContextMode, reducers, coreCollection, enableCache]);
+    return reducers as TReducers;
+  }, [isContextMode, entity, entityReducers, reducers, createCoreCollection]);
 };
