@@ -81,13 +81,13 @@ export type UseCaseHookOptions<T, TUseCaseOptions extends object = object> = TUs
 
 export interface UseCaseHook {
   <T, TEntityReducers extends EntityReducers<T>>(
-    usecase: EntityUseCase<T, TEntityReducers & EntityReducers<T>> & UseCase<TEntityReducers>,
+    usecase: EntityUseCase<T, TEntityReducers> & UseCase<EntityReducers<T>>,
     options?: UseCaseHookContextualOptions<T>
   ): CoreCollection<T, TEntityReducers, null>;
 
   <T, TEntityReducers extends EntityReducers<T>, TUseCaseOptions extends object = object>(
     initailEntity: T | EntityGetter<T>,
-    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> & UseCase<TEntityReducers, TUseCaseOptions>,
+    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> & UseCase<EntityReducers<T>, TUseCaseOptions>,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
     deps?: unknown[]
   ): CoreCollection<T, TEntityReducers>;

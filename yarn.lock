@@ -1575,10 +1575,10 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@mic-rexjs/usecases@^1.4.11":
-  version "1.4.11"
-  resolved "https://registry.yarnpkg.com/@mic-rexjs/usecases/-/usecases-1.4.11.tgz#6266cb3a7e35c1425fc31964e7bbd72cb5bd9e35"
-  integrity sha512-cecDZ24iIkQQwz6EgPQvkwBxwEUCTP7JiRE28q1UxXTIi5ZRILsGsY6qJdRcuGgx0V/OJpgrjkj4VK+MwmczZA==
+"@mic-rexjs/usecases@^1.4.17":
+  version "1.4.17"
+  resolved "https://registry.yarnpkg.com/@mic-rexjs/usecases/-/usecases-1.4.17.tgz#4e0951ffd6131253f0052531c78ed9b502d14625"
+  integrity sha512-imDd8KwZP8SIWiP4v/i4USHXel55SKW38yzUgX/HehGJGJ4Iez8/1JV66sOk74ugiRucoJOsgSNf6cZbE73lLA==
 
 "@nicolo-ribaudo/chokidar-2@2.1.8-no-fsevents.3":
   version "2.1.8-no-fsevents.3"
