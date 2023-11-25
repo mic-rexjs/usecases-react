@@ -95,18 +95,11 @@ export interface UseCaseHook {
     initailEntity: T | EntityGetter<T>,
     usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> &
       /**
-       * 1. 如果不使用 `&`，那么很多情况下 `options` 类型无法被正确推导；
+       * 如果不使用 `&`，那么很多情况下 `options` 类型无法被正确推导；
        * 因为使用 `&` 是为了让该参数 `usecase` 的泛型 `T` 推导占优先级，
        * 从而保证 `options` 里的泛型 `T` 是根据 `usecase` 来推导的。
-       *
-       * 2. 以 `TEntityReducers` 代替了 `EntityReducers<T>`，
-       * 因为如果使用 `EntityReducers<T>` 则会导致其推导优先级比 `initailEntity` 还高，
-       * 这是不应该的，所以要使用不带泛型参数的 `TEntityReducers`。
-       *
-       * 推导权重等级应该是：`initailEntity` > `usecase` > `options`，
-       * 即：以 `initailEntity` 中的泛型 `T` 为准。
        */
-      UseCase<TEntityReducers, TUseCaseOptions>,
+      UseCase<EntityReducers<T>, TUseCaseOptions>,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
     deps?: unknown[]
   ): CoreCollection<T, TEntityReducers>;
