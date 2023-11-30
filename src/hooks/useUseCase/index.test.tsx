@@ -319,6 +319,75 @@ describe('useUseCase', (): void => {
       expect(typeof Provider).toBe('function');
     });
 
+    test('`usecase` should be called only once if deps has not provided', (): void => {
+      const mockUseCase = jest.fn(fileUseCase);
+
+      const { result, rerender } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, mockUseCase);
+      });
+
+      const { current: cores } = result;
+      const [, { setEntity }] = cores;
+
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
+
+      act((): void => {
+        setEntity({
+          ...defaultFile,
+        });
+      });
+
+      rerender();
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
+    });
+
+    test('`usecase` should be called only once if deps has not changed', (): void => {
+      const mockUseCase = jest.fn(fileUseCase);
+
+      const { result, rerender } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, mockUseCase, {}, [1, 'x']);
+      });
+
+      const { current: cores } = result;
+      const [, { setEntity }] = cores;
+
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
+
+      act((): void => {
+        setEntity({
+          ...defaultFile,
+        });
+      });
+
+      rerender();
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
+    });
+
+    test('`usecase` should be called if deps has changed', (): void => {
+      let i = 0;
+      const mockUseCase = jest.fn(fileUseCase);
+
+      const { result, rerender } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, mockUseCase, {}, [i++, 'x']);
+      });
+
+      const { current: cores } = result;
+      const [, { setEntity }] = cores;
+
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
+
+      act((): void => {
+        setEntity({
+          ...defaultFile,
+        });
+      });
+
+      expect(mockUseCase).toHaveBeenCalledTimes(2);
+
+      rerender();
+      expect(mockUseCase).toHaveBeenCalledTimes(3);
+    });
+
     test('after call non-generator reducer, it should not trigger update', (): void => {
       const onUpdate = jest.fn();
       const onDeepUpdate = jest.fn();
@@ -1492,6 +1561,46 @@ describe('useUseCase', (): void => {
       expect(add(1, 2)).toBe(3);
     });
 
+    test('`usecase` should be called only once if deps has not provided', (): void => {
+      const mockUseCase = jest.fn(mathUseCase);
+
+      const { rerender } = renderHook((): MathReducers => {
+        return useUseCase(mockUseCase);
+      });
+
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
+
+      rerender();
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
+    });
+
+    test('`usecase` should be called only once if deps has not changed', (): void => {
+      const mockUseCase = jest.fn(mathUseCase);
+
+      const { rerender } = renderHook((): MathReducers => {
+        return useUseCase(mockUseCase, {}, [1, 'x']);
+      });
+
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
+
+      rerender();
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
+    });
+
+    test('`usecase` should be called if deps has changed', (): void => {
+      let i = 0;
+      const mockUseCase = jest.fn(mathUseCase);
+
+      const { rerender } = renderHook((): MathReducers => {
+        return useUseCase(mockUseCase, {}, [i++, 'x']);
+      });
+
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
+
+      rerender();
+      expect(mockUseCase).toHaveBeenCalledTimes(2);
+    });
+
     test('reducer call should not be cached if component is at rendering phase', (): void => {
       const buttonText = 'button';
 
@@ -1730,6 +1839,28 @@ describe('useUseCase', (): void => {
       expect(onUpdate).toHaveBeenCalledTimes(2);
       expect(onPathChange).toHaveBeenCalledWith('');
       expect(onUndefinedEntity).toHaveBeenCalledTimes(0);
+    });
+
+    test('`usecase` should not be called at child component', (): void => {
+      const mockUseCase = jest.fn(fileUseCase);
+
+      const A = (): React.ReactElement => {
+        useUseCase(mockUseCase);
+        return <Fragment />;
+      };
+
+      const B = (): React.ReactElement => {
+        const [, , Provider] = useUseCase(defaultFile, mockUseCase);
+
+        return (
+          <Provider>
+            <A />
+          </Provider>
+        );
+      };
+
+      render(<B />);
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
     });
 
     test('reducer call should be cached if component is at rendering phase in child components', (): void => {

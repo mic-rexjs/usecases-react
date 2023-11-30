@@ -49,7 +49,7 @@ export const useUseCase: UseCaseHook = <
 
   const {
     entity: contextEntity,
-    reducers: contextEntityReducers,
+    reducers: contextEntityReducers = null,
     optionsRefCollection: contextOptionsRefCollection,
   } = useContext(context);
 
@@ -78,31 +78,39 @@ export const useUseCase: UseCaseHook = <
     triggerCallbacks(optionsRefCollection, newEntity, oldEntity);
   });
 
-  const createReducers = useMemoizedFn((): [TReducers, ContextualEntityReducers<T, TEntityReducers>] => {
-    let reducers = {} as TReducers;
-    let entityReducers = {} as ContextualEntityReducers<T, TEntityReducers>;
+  const createRootEntityReducers = useMemoizedFn((): ContextualEntityReducers<T, TEntityReducers> => {
+    const initOptions = options as UseCaseHookOptions<T, TUseCaseOptions>;
 
-    if (hasInitialEntity) {
-      const initOptions = options as UseCaseHookOptions<T, TUseCaseOptions>;
-
-      entityReducers = initEntityReducers(entity, entityUseCase, initOptions, onEntityChange);
-    } else if (contextEntityReducers) {
-      entityReducers = contextEntityReducers;
-    } else {
-      reducers = (usecase as UseCase<TReducers, TUseCaseOptions>)(options);
-    }
-
-    return [reducers, entityReducers];
+    return initEntityReducers(entity, entityUseCase, initOptions, onEntityChange);
   });
 
-  const createReducersDep = hasInitialEntity ? entity : contextEntityReducers;
+  const createReducers = useMemoizedFn((): TReducers => {
+    return (usecase as UseCase<TReducers, TUseCaseOptions>)(options);
+  });
 
-  const [reducers, entityReducers] = useCreation((): [TReducers, ContextualEntityReducers<T, TEntityReducers>] => {
+  const rootEntityReducers = useCreation((): ContextualEntityReducers<T, TEntityReducers> | null => {
     void depsKey;
-    void createReducersDep;
+
+    if (!hasInitialEntity) {
+      return null;
+    }
+
+    return createRootEntityReducers();
+  }, [hasInitialEntity, depsKey, createRootEntityReducers]);
+
+  const entityReducers = useCreation((): ContextualEntityReducers<T, TEntityReducers> => {
+    return rootEntityReducers || contextEntityReducers || ({} as ContextualEntityReducers<T, TEntityReducers>);
+  }, [rootEntityReducers, contextEntityReducers]);
+
+  const reducers = useCreation((): TReducers => {
+    void depsKey;
+
+    if (isContextMode) {
+      return {} as TReducers;
+    }
 
     return createReducers();
-  }, [createReducers, depsKey, createReducersDep]);
+  }, [isContextMode, depsKey, createReducers]);
 
   const Provider = useProvider(context, entity, entityReducers, optionsRefCollection);
 
