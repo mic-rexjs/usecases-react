@@ -1,6 +1,6 @@
 {
   "name": "@mic-rexjs/usecases-react",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "React-based solution for use usecases of Clean Architecture",
   "private": true,
   "keywords": [
@@ -59,7 +59,7 @@
     "@commitlint/cli": "^17.6.6",
     "@commitlint/config-angular": "^17.6.6",
     "@jest/globals": "^29.5.0",
-    "@mic-rexjs/usecases": "^1.4.21",
+    "@mic-rexjs/usecases": "^1.4.22",
     "@testing-library/react": "^14.0.0",
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.14",
