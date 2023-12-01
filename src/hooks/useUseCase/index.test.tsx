@@ -33,11 +33,11 @@ interface TestFieldPathData {
 type TestReducers<T extends TestFile> = EntityReducers<
   T,
   {
-    init(entity: T, newEntity: T): EntityGenerator<T, void>;
+    init<S extends T>(entity: S, newEntity: S): EntityGenerator<S, void>;
 
-    setPath(entity: T, path: string): EntityGenerator<T, void>;
+    setPath<S extends T>(entity: S, path: string): EntityGenerator<S, void>;
 
-    readFile(entity: T, path: string): AsyncEntityGenerator<T, number>;
+    readFile<S extends T>(entity: S, path: string): AsyncEntityGenerator<S, number>;
 
     isImage(entity: T): boolean;
   },
@@ -103,13 +103,13 @@ const fileUseCase = <T extends TestFile>(options: FileUseCaseOptions = {}): Test
   const entityReducers = objectUseCase<T>();
   const { pathPrefix = '' } = options;
 
-  const init = function* (entity: T, newEntity = defaultFile as T): EntityGenerator<T, void> {
-    yield (): T => {
+  const init = function* <S extends T>(entity: S, newEntity = defaultFile as S): EntityGenerator<S, void> {
+    yield (): S => {
       return newEntity;
     };
   };
 
-  const setPath = function* (entity: T, path: string): EntityGenerator<T, void> {
+  const setPath = function* <S extends T>(entity: S, path: string): EntityGenerator<S, void> {
     yield {
       ...entity,
       path: pathPrefix + path,
@@ -117,13 +117,13 @@ const fileUseCase = <T extends TestFile>(options: FileUseCaseOptions = {}): Test
     };
   };
 
-  const readFile = async function* (entity: T, path: string): AsyncEntityGenerator<T, number> {
+  const readFile = async function* <S extends T>(entity: S, path: string): AsyncEntityGenerator<S, number> {
     const size = 2000;
 
     yield* setPath(entity, path);
     await Promise.resolve(null);
 
-    yield (oldEntity: T): T => {
+    yield (oldEntity: S): S => {
       return {
         ...oldEntity,
         size,
