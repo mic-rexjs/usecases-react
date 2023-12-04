@@ -1,8 +1,8 @@
-import { Reducers } from '@mic-rexjs/usecases';
+import { ReducerMap } from '@mic-rexjs/usecases';
 import { ReducerCallCache, ReducerCallCacheMap, ShouldCacheReducerCallback } from './types';
 import { isSameArray } from '../isSameArray';
 
-export const cacheReducerCalls = <T extends Reducers>(reducers: T, shouldCache: ShouldCacheReducerCallback): T => {
+export const cacheReducerCalls = <T extends ReducerMap>(reducers: T, shouldCache: ShouldCacheReducerCallback): T => {
   const cacheMap: ReducerCallCacheMap<T> = {};
   const newReducers: Partial<T> = {};
 

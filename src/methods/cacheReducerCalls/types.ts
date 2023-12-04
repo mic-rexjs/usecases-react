@@ -1,4 +1,4 @@
-import { Reducer, Reducers } from '@mic-rexjs/usecases';
+import { Reducer, ReducerMap } from '@mic-rexjs/usecases';
 
 export interface ReducerCallCache<T extends Reducer> {
   parameters: Parameters<T>;
@@ -10,6 +10,6 @@ export interface ShouldCacheReducerCallback {
   (): boolean;
 }
 
-export type ReducerCallCacheMap<T extends Reducers> = {
+export type ReducerCallCacheMap<T extends ReducerMap> = {
   [K in keyof T]?: ReducerCallCache<T[K]>;
 };
