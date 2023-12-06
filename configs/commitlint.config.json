@@ -10,8 +10,7 @@
     ],
     "scope-case": [
       2,
-      "always",
-      "camel-case"
+      "never"
     ]
   }
 }
