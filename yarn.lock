@@ -1575,10 +1575,13 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
-"@mic-rexjs/usecases@^1.4.27":
-  version "1.4.27"
-  resolved "https://registry.yarnpkg.com/@mic-rexjs/usecases/-/usecases-1.4.27.tgz#c3f2bee18321285ef57c0c28335cb5cc4a64779e"
-  integrity sha512-VScpFRyNVCpJgCoI4kF+PoMQ81yRrGhElKG1tkFAtTRxdKuyJzzYA6c8u9/ccyVxc0Iuphvj8D+sB5A+Ub3/fg==
+"@mic-rexjs/usecases@^1.4.29":
+  version "1.4.29"
+  resolved "https://registry.yarnpkg.com/@mic-rexjs/usecases/-/usecases-1.4.29.tgz#76bc0d6c520d7b10207250b7f5022f0e4b0c1418"
+  integrity sha512-LSD8zS6+q0bYyADP3Np7tx6evkXmzHVZxs8MYQkykmDYexgcIsHg65dJ1B6AFdeyod0ErYRKH7MRAwS6g42QYQ==
+  dependencies:
+    "@babel/plugin-transform-runtime" "^7.22.7"
+    "@babel/preset-env" "^7.22.7"
 
 "@nicolo-ribaudo/chokidar-2@2.1.8-no-fsevents.3":
   version "2.1.8-no-fsevents.3"

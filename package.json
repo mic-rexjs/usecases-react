@@ -1,6 +1,6 @@
 {
   "name": "@mic-rexjs/usecases-react",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "description": "React-based solution for use usecases of Clean Architecture",
   "private": true,
   "keywords": [
@@ -44,28 +44,28 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@mic-rexjs/usecases": "^1.4.4",
-    "ahooks": "^3.7.8",
-    "react": "^18.2.0"
+    "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
+  },
+  "dependencies": {
+    "@babel/plugin-transform-runtime": "^7.22.7",
+    "@babel/preset-env": "^7.22.7",
+    "@mic-rexjs/usecases": "^1.4.29",
+    "ahooks": "^3.7.8"
   },
   "devDependencies": {
     "@babel/cli": "^7.22.9",
     "@babel/core": "^7.22.8",
-    "@babel/plugin-transform-runtime": "^7.22.7",
-    "@babel/preset-env": "^7.22.7",
     "@babel/preset-react": "^7.22.5",
     "@babel/preset-typescript": "^7.22.5",
     "@commitlint/cli": "^17.6.6",
     "@commitlint/config-angular": "^17.6.6",
     "@jest/globals": "^29.5.0",
-    "@mic-rexjs/usecases": "^1.4.27",
     "@testing-library/react": "^14.0.0",
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.14",
     "@types/react-dom": "^18.2.7",
     "@typescript-eslint/eslint-plugin": "^5.60.1",
     "@typescript-eslint/parser": "^5.60.1",
-    "ahooks": "^3.7.8",
     "babel-loader": "^9.1.3",
     "copy-webpack-plugin": "^11.0.0",
     "eslint": "^8.42.0",
