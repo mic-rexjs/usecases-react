@@ -11,6 +11,10 @@
     "scope-case": [
       2,
       "never"
+    ],
+    "subject-case": [
+      2,
+      "never"
     ]
   }
 }

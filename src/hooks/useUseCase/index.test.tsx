@@ -1537,6 +1537,56 @@ describe('useUseCase', (): void => {
         oldValue: EXT_1,
       });
     });
+
+    test('multiple `Provider` should work', (): void => {
+      const onNumberMount = jest.fn();
+      const onStringMount = jest.fn();
+      const onBooleanMount = jest.fn();
+
+      const numberUseCase = (): EntityReducers<number> => {
+        return objectUseCase();
+      };
+
+      const stringUseCase = (): EntityReducers<string> => {
+        return objectUseCase();
+      };
+
+      const booleanUseCase = (): EntityReducers<boolean> => {
+        return objectUseCase();
+      };
+
+      const TestChildComponent = (): null => {
+        const [numberValue] = useUseCase(numberUseCase);
+        const [stringValue] = useUseCase(stringUseCase);
+        const [booleanValue] = useUseCase(booleanUseCase);
+
+        useMount((): void => {
+          onNumberMount(numberValue);
+          onStringMount(stringValue);
+          onBooleanMount(booleanValue);
+        });
+
+        return null;
+      };
+
+      const TestParentComponent = (): React.ReactElement => {
+        const [, , NumberProvider] = useUseCase(11, numberUseCase);
+        const [, , StringProvider] = useUseCase('hello', stringUseCase);
+        const [, , BooleanProvider] = useUseCase(true, booleanUseCase);
+
+        return (
+          <NumberProvider with={[StringProvider, BooleanProvider]}>
+            <TestChildComponent />
+          </NumberProvider>
+        );
+      };
+
+      render(<TestParentComponent />);
+
+      expect(onNumberMount).toHaveBeenCalledWith(11);
+      expect(onStringMount).toHaveBeenCalledWith('hello');
+      expect(onBooleanMount).toHaveBeenCalledWith(true);
+    });
   });
 
   describe('`useUseCase` should work with 1+ arguments on non-entity mode', (): void => {
