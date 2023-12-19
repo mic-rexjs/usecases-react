@@ -14,7 +14,7 @@ export const initEntityReducers = <
   onEntityChange: EntityChangeEventHandler<T>
 ): ContextualEntityReducers<T, TEntityReducers> => {
   const { createEntityReducers } = entityReducerUseCase();
-  const { stateless, watch, onChange, options: usecaseOptions, ...restUseCaseOptions } = options;
+  const { watch, onChange, options: usecaseOptions, ...restUseCaseOptions } = options;
 
   return createEntityReducers(
     entity,

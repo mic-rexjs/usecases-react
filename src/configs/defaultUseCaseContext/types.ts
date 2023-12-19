@@ -1,4 +1,3 @@
-import { OptionsRefCollection } from '@/hooks/useOptionsRefCollection/types';
 import { AsyncEntityGenerator, EntityGenerator, EntityReducer, EntityReducers } from '@mic-rexjs/usecases';
 
 export type ContextualEntityReducer<T, TReducer extends EntityReducer<T>> = TReducer extends (
@@ -18,10 +17,21 @@ export type ContextualEntityReducers<T, TEntityReducers extends EntityReducers<T
   [K in keyof TEntityReducers]: ContextualEntityReducer<T, TEntityReducers[K]>;
 };
 
-export interface UseCaseContextValue<T, TEntityReducers extends EntityReducers<T>, TUseCaseOptions extends object> {
+export interface ChangeCallback<T> {
+  (newEntity: T, oldEntity: T): void;
+}
+
+export interface UseCaseContextValue<T, TEntityReducers extends EntityReducers<T>> {
   entity?: T;
 
   reducers?: ContextualEntityReducers<T, TEntityReducers>;
 
-  optionsRefCollection?: OptionsRefCollection<TUseCaseOptions>;
+  changeCallbackCollection?: ChangeCallback<T>[];
 }
+
+export interface UseCaseContextValueGetter<T, TEntityReducers extends EntityReducers<T>> {
+  (): UseCaseContextValue<T, TEntityReducers>;
+}
+
+export interface UseCaseContext<T, TEntityReducers extends EntityReducers<T>>
+  extends React.Context<UseCaseContextValueGetter<T, TEntityReducers> | null> {}

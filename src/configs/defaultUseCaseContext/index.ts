@@ -1,5 +1,5 @@
 import { createContext } from 'react';
 import { EntityReducers } from '@mic-rexjs/usecases';
-import { UseCaseContextValue } from './types';
+import { UseCaseContext } from './types';
 
-export const defaultUseCaseContext = createContext<UseCaseContextValue<unknown, EntityReducers<unknown>, object>>({});
+export const defaultUseCaseContext = createContext(null) as UseCaseContext<unknown, EntityReducers<unknown>>;

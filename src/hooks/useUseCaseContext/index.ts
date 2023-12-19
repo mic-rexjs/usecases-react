@@ -1,19 +1,15 @@
 import { EntityReducers, EntityUseCase } from '@mic-rexjs/usecases';
 import { useConstant } from '../useConstant';
-import { UseCaseContextMap, UseCaseMappingContext } from '@/configs/usecaseContextMap/types';
+import { UseCaseContextMap } from '@/configs/usecaseContextMap/types';
 import { usecaseContextMap } from '@/configs/usecaseContextMap';
 import { createContext } from 'react';
-import { UseCaseContextValue } from '@/configs/defaultUseCaseContext/types';
+import { UseCaseContext } from '@/configs/defaultUseCaseContext/types';
 
 export const useUseCaseContext = <
   T,
   TEntityReducers extends EntityReducers<T>,
   TUseCaseOptions extends object,
-  TContext extends UseCaseMappingContext<T, TEntityReducers, TUseCaseOptions> = UseCaseMappingContext<
-    T,
-    TEntityReducers,
-    TUseCaseOptions
-  >
+  TContext extends UseCaseContext<T, TEntityReducers> = UseCaseContext<T, TEntityReducers>
 >(
   usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
   defaultContext?: TContext | null
@@ -29,7 +25,7 @@ export const useUseCaseContext = <
       return defaultContext;
     }
 
-    const ctx = createContext<UseCaseContextValue<T, TEntityReducers, TUseCaseOptions>>({}) as TContext;
+    const ctx = createContext(null) as TContext;
 
     map.set(usecase, ctx);
     return ctx;

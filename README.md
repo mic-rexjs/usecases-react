@@ -114,8 +114,8 @@ const fileUseCase = <T extends File>({ maxContentLength = 2000 }: FileUseCaseOpt
 };
 
 // b.tsx
-import { useUseCase } from '@mic-rexjs/usecases-react';
 import ReactDOM from 'react-dom';
+import { useUseCase } from '@mic-rexjs/usecases-react';
 
 const ParentComponent = ({ children }: React.PropsWithChildren): React.ReactElement => {
   // Pass a default entity to initialize usecase, this usecase must be unique, just like `react context`.

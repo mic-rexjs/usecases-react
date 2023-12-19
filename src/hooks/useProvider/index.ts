@@ -1,39 +1,52 @@
-import React, { FC, ReactElement, ReactNode } from 'react';
-
-import { UseCaseMappingContext } from '@/configs/usecaseContextMap/types';
+import React, { FC, ReactElement, ReactNode, useCallback } from 'react';
 import { EntityReducers } from '@mic-rexjs/usecases';
-import { useConstant } from '../useConstant';
-import { useCreation, useLatest } from 'ahooks';
-import { UseCaseHookOptions } from '../useUseCase/types';
-import { ContextualEntityReducers, UseCaseContextValue } from '@/configs/defaultUseCaseContext/types';
+import { useLatest } from 'ahooks';
+import {
+  ChangeCallback,
+  ContextualEntityReducers,
+  UseCaseContext,
+  UseCaseContextValue,
+} from '@/configs/defaultUseCaseContext/types';
 import { UseCaseProvider, UseCaseProviderProps } from './types';
-import { OptionsRefCollection } from '../useOptionsRefCollection/types';
+import { UseCaseModes } from '@/enums/UseCaseModes';
+import { useCompareDeps } from '../useCompareDeps';
+import { useConstantFn } from '../useConstantFn';
 
-export const useProvider = <T, TEntityReducers extends EntityReducers<T>, TUseCaseOptions extends object>(
-  context: UseCaseMappingContext<T, TEntityReducers, TUseCaseOptions>,
+export const useProvider = <T, TEntityReducers extends EntityReducers<T>>(
+  context: UseCaseContext<T, TEntityReducers>,
+  mode: UseCaseModes,
   entity: T,
   reducers: ContextualEntityReducers<T, TEntityReducers>,
-  optionsRefCollection: OptionsRefCollection<UseCaseHookOptions<T, TUseCaseOptions>>
+  changeCallbackCollection: ChangeCallback<T>[]
 ): UseCaseProvider => {
-  const contextValue = useCreation((): UseCaseContextValue<T, TEntityReducers, TUseCaseOptions> => {
-    return { entity, reducers, optionsRefCollection };
-  }, [entity, reducers, optionsRefCollection]);
+  const isGlobal = (mode & UseCaseModes.Global) === UseCaseModes.Global;
 
-  const contextValueRef = useLatest(contextValue);
+  const contextValueRef = useLatest<UseCaseContextValue<T, TEntityReducers>>({
+    entity,
+    reducers,
+    changeCallbackCollection,
+  });
 
-  return useConstant((): FC => {
-    return ({ children, with: withProviders = [] }: UseCaseProviderProps): ReactElement => {
-      const { Provider: ContextProvider } = context;
+  const key = useCompareDeps(isGlobal ? [] : [entity, reducers, changeCallbackCollection]);
 
-      return React.createElement(
-        ContextProvider,
-        {
-          value: contextValueRef.current,
-        },
-        withProviders.reduceRight((currentChildren: ReactNode, withProvider: FC): ReactNode => {
-          return React.createElement(withProvider, {}, currentChildren);
-        }, children)
-      );
-    };
+  const getContextValue = useCallback((): UseCaseContextValue<T, TEntityReducers> => {
+    void key;
+    return contextValueRef.current;
+  }, [key, contextValueRef]);
+
+  const getContextValueRef = useLatest(getContextValue);
+
+  return useConstantFn(({ children, with: withProviders = [] }: UseCaseProviderProps): ReactElement => {
+    const { Provider: ContextProvider } = context;
+
+    return React.createElement(
+      ContextProvider,
+      {
+        value: getContextValueRef.current,
+      },
+      withProviders.reduceRight((currentChildren: ReactNode, withProvider: FC): ReactNode => {
+        return React.createElement(withProvider, {}, currentChildren);
+      }, children)
+    );
   });
 };
