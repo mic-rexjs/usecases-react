@@ -1,6 +1,6 @@
 {
   "name": "@mic-rexjs/usecases-react",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "React-based solution for use usecases of Clean Architecture",
   "private": true,
   "keywords": [
@@ -44,7 +44,7 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@mic-rexjs/usecases": "^1.4.29",
+    "@mic-rexjs/usecases": "^2.0.0",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
   },
   "dependencies": {
@@ -59,8 +59,8 @@
     "@babel/preset-typescript": "^7.22.5",
     "@commitlint/cli": "^17.6.6",
     "@commitlint/config-angular": "^17.6.6",
-    "@mic-rexjs/usecases": "^1.4.29",
     "@jest/globals": "^29.5.0",
+    "@mic-rexjs/usecases": "^2.0.0",
     "@testing-library/react": "^14.0.0",
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.14",

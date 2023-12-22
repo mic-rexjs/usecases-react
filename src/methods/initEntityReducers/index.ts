@@ -1,4 +1,4 @@
-import { EntityReducers, EntityUseCase, entityReducerUseCase } from '@mic-rexjs/usecases';
+import { EntityReducers, EntityUseCase, createEntityReducers } from '@mic-rexjs/usecases';
 import { UseCaseHookOptions } from '../../hooks/useUseCase/types';
 import { ContextualEntityReducers } from '@/configs/defaultUseCaseContext/types';
 import { EntityChangeEventHandler } from './types';
@@ -13,7 +13,6 @@ export const initEntityReducers = <
   options: UseCaseHookOptions<T, TUseCaseOptions>,
   onEntityChange: EntityChangeEventHandler<T>
 ): ContextualEntityReducers<T, TEntityReducers> => {
-  const { createEntityReducers } = entityReducerUseCase();
   const { watch, onChange, options: usecaseOptions, ...restUseCaseOptions } = options;
 
   return createEntityReducers(
