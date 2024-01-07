@@ -12,7 +12,7 @@ import { renderHook, act, render, fireEvent, screen } from '@testing-library/rea
 import { useUseCase } from '.';
 import { useDeepCompareEffect, useMemoizedFn, useMount, useUpdate, useUpdateEffect } from 'ahooks';
 import { Dispatch, Fragment, useEffect, useRef, useState } from 'react';
-import { CoreCollection, EntityWatchEvent } from './types';
+import { EntityWatchEvent, PseudoCoreCollection, RootCoreCollection } from './types';
 import { UseCaseModes } from '@/enums/UseCaseModes';
 
 interface TestFile {
@@ -204,7 +204,7 @@ const Child = ({ textPrefix = '', onUpdate, onPathChange, onUndefinedEntity }: C
   );
 };
 
-const Parent = ({ children, mode, onUpdate, onSetPath }: ParentProps): React.ReactElement => {
+const Parent = ({ children, mode = UseCaseModes.Normal, onUpdate, onSetPath }: ParentProps): React.ReactElement => {
   const [{ path, ext }, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, mode);
 
   const onClick = (): void => {
@@ -281,8 +281,8 @@ describe('useUseCase', (): void => {
     '[mode=%s]: `useUseCase` should work the same as `useRootCoreCollection`',
     (mode?: UseCaseModes): void => {
       test('check `context.length`', (): void => {
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
-          return useUseCase(defaultFile, fileUseCase, mode);
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+          return useUseCase(defaultFile, fileUseCase, mode as UseCaseModes);
         });
 
         const { current: cores } = result;
@@ -291,8 +291,8 @@ describe('useUseCase', (): void => {
       });
 
       test('`entity` should equal `defaultFile`', (): void => {
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
-          return useUseCase(defaultFile, fileUseCase, mode);
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+          return useUseCase(defaultFile, fileUseCase, mode as UseCaseModes);
         });
 
         const { current: cores } = result;
@@ -302,7 +302,7 @@ describe('useUseCase', (): void => {
       });
 
       test('`reducers` should be returned as an object', (): void => {
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           return useUseCase(defaultFile, fileUseCase);
         });
 
@@ -313,7 +313,7 @@ describe('useUseCase', (): void => {
       });
 
       test('`Provider` should be returned as a function', (): void => {
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           return useUseCase(defaultFile, fileUseCase);
         });
 
@@ -326,7 +326,7 @@ describe('useUseCase', (): void => {
       test('`usecase` should be called only once if deps has not provided', (): void => {
         const mockUseCase = jest.fn(fileUseCase);
 
-        const { result, rerender } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result, rerender } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           return useUseCase(defaultFile, mockUseCase);
         });
 
@@ -348,7 +348,7 @@ describe('useUseCase', (): void => {
       test('`usecase` should be called only once if deps has not changed', (): void => {
         const mockUseCase = jest.fn(fileUseCase);
 
-        const { result, rerender } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result, rerender } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           return useUseCase(defaultFile, mockUseCase, {}, [1, 'x']);
         });
 
@@ -371,7 +371,7 @@ describe('useUseCase', (): void => {
         let i = 0;
         const mockUseCase = jest.fn(fileUseCase);
 
-        const { result, rerender } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result, rerender } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           return useUseCase(defaultFile, mockUseCase, {}, [i++, 'x']);
         });
 
@@ -439,7 +439,7 @@ describe('useUseCase', (): void => {
       test('after `yield entity`, it should trigger update', (): void => {
         const onUpdate = jest.fn();
 
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           useUpdateEffect((): void => {
             onUpdate();
           });
@@ -474,7 +474,7 @@ describe('useUseCase', (): void => {
       test('after `yield entity` on async mode, it should trigger update', async (): Promise<void> => {
         const onUpdate = jest.fn();
 
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           useUpdateEffect((): void => {
             onUpdate();
           });
@@ -508,7 +508,7 @@ describe('useUseCase', (): void => {
       test('after `yield entity` callbacks, it should trigger update', (): void => {
         const onUpdate = jest.fn();
 
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           useUpdateEffect((): void => {
             onUpdate();
           });
@@ -676,7 +676,7 @@ describe('useUseCase', (): void => {
         const onUpdate = jest.fn();
 
         const { result, rerender } = renderHook(
-          (file: TestFile = defaultFile): CoreCollection<TestFile, TestReducers<TestFile>> => {
+          (file: TestFile = defaultFile): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
             useUpdateEffect((): void => {
               onUpdate();
             });
@@ -703,7 +703,7 @@ describe('useUseCase', (): void => {
       test('stateless mode should not trigger update when after `yield entity`', (): void => {
         const onUpdate = jest.fn();
 
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           useUpdateEffect((): void => {
             onUpdate();
           });
@@ -727,7 +727,7 @@ describe('useUseCase', (): void => {
       test('`options.onChange` should be trigger when entity has changed', (): void => {
         const onChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
 
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           return useUseCase(defaultFile, fileUseCase, { onChange });
         });
 
@@ -746,7 +746,7 @@ describe('useUseCase', (): void => {
       });
 
       test('`options.options` should override rest options', (): void => {
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           return useUseCase(defaultFile, fileUseCase, {
             pathPrefix: 'xyz/',
             options: { pathPrefix: '123/' },
@@ -800,7 +800,7 @@ describe('useUseCase', (): void => {
         const onPathChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
         const onSizeChange = jest.fn();
 
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           return useUseCase(defaultFile, fileUseCase, {
             watch: {
               path: onPathChange,
@@ -835,7 +835,7 @@ describe('useUseCase', (): void => {
         const onPathChange2 = jest.fn();
         let onPathChange = onPathChange1;
 
-        const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
           return useUseCase(defaultFile, fileUseCase, {
             watch: {
               path: onPathChange,
@@ -1083,7 +1083,7 @@ describe('useUseCase', (): void => {
         const onExtChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, string>) => void>();
         const onSizeChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
 
-        const { result } = renderHook((): CoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
           return useUseCase({} as TestFieldPathData, fieldPathUseCase, {
             watch: {
               'list.ext': onExtChange,
@@ -1333,14 +1333,16 @@ describe('useUseCase', (): void => {
           return entityUseCase();
         };
 
-        const { result } = renderHook((): CoreCollection<TestFieldPathData[], EntityReducers<TestFieldPathData[]>> => {
-          return useUseCase([] as TestFieldPathData[], lengthUseCase, {
-            watch: {
-              length: onEntityLengthChange,
-              'list.length': onListLengthChange,
-            },
-          });
-        });
+        const { result } = renderHook(
+          (): RootCoreCollection<TestFieldPathData[], EntityReducers<TestFieldPathData[]>> => {
+            return useUseCase([] as TestFieldPathData[], lengthUseCase, {
+              watch: {
+                length: onEntityLengthChange,
+                'list.length': onListLengthChange,
+              },
+            });
+          }
+        );
 
         const { current: cores } = result;
         const [, { setEntity }] = cores;
@@ -1375,7 +1377,7 @@ describe('useUseCase', (): void => {
       test('`options.watch` should work with field path of nested array', (): void => {
         const onChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
 
-        const { result } = renderHook((): CoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
           return useUseCase({} as TestFieldPathData, fieldPathUseCase, {
             watch: {
               'nestedList.size': onChange,
@@ -1477,7 +1479,7 @@ describe('useUseCase', (): void => {
         const onExtChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, string | undefined>) => void>();
         const onSizeChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number | undefined>) => void>();
 
-        const { result } = renderHook((): CoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
+        const { result } = renderHook((): RootCoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
           return useUseCase({} as TestFieldPathData, fieldPathUseCase, {
             watch: {
               'obj.file.ext': onExtChange,
@@ -1989,6 +1991,46 @@ describe('useUseCase', (): void => {
       expect(onChangeA).toHaveReturnedWith(2);
       expect(onChangeB).toHaveReturnedWith(1);
       expect(onChangeC).toHaveReturnedWith(3);
+    });
+  });
+
+  describe('`useUseCase` should work the same as `usePseudoCoreCollection`', (): void => {
+    test('the return value should be `PseudoCoreCollection`', (): void => {
+      const { result } = renderHook((): PseudoCoreCollection<MathReducers> => {
+        return useUseCase(mathUseCase, UseCaseModes.Global);
+      });
+
+      const { current } = result;
+
+      expect(current).toEqual([expect.any(Object), expect.any(Function)]);
+    });
+
+    test('the return value should be `reducers` object at child component', (): void => {
+      const onMountA = jest.fn();
+
+      const A = (): null => {
+        const reducers = useUseCase(mathUseCase);
+
+        useMount((): void => {
+          onMountA(reducers);
+        });
+
+        return null;
+      };
+
+      const B = (): React.ReactElement => {
+        const [, Provider] = useUseCase(mathUseCase, UseCaseModes.Global);
+
+        return (
+          <Provider>
+            <A />
+          </Provider>
+        );
+      };
+
+      render(<B />);
+
+      expect(onMountA).toHaveBeenCalledWith(expect.any(Object));
     });
   });
 

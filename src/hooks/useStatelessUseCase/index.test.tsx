@@ -2,12 +2,11 @@ import { EntityReducers, entityUseCase } from '@mic-rexjs/usecases';
 import { describe, expect, jest, test } from '@jest/globals';
 import { CoreCollection, UseCaseHook } from '../useUseCase/types';
 import { UseCaseModes } from '@/enums/UseCaseModes';
-import { render, renderHook } from '@testing-library/react';
-import { useMount } from 'ahooks';
+import { renderHook } from '@testing-library/react';
 import * as useUseCaseModule from '../useUseCase';
 import { useStatelessUseCase } from '.';
 
-const numberUseCase = (): EntityReducers<number> => {
+const numberUseCase = <T extends number>(): EntityReducers<T> => {
   return entityUseCase();
 };
 
@@ -22,7 +21,7 @@ describe('useStatelessUseCase', (): void => {
         useStatelessUseCase(1, numberUseCase);
       });
 
-      expect(useMockedUseCase).toHaveBeenCalledWith(1, numberUseCase, UseCaseModes.Stateless);
+      expect(useMockedUseCase).toHaveBeenCalledWith(1, numberUseCase, UseCaseModes.Stateless, void 0, void 0);
       jest.spyOn(useUseCaseModule, 'useUseCase').mockRestore();
     });
 
@@ -39,59 +38,8 @@ describe('useStatelessUseCase', (): void => {
           setEntity: expect.any(Function),
         },
         expect.any(Function),
-      ]);
-    });
-  });
-
-  describe('`useStatelessUseCase` should work the same as `ContextualCoreCollectionHook`', (): void => {
-    test('check `useUseCase` has received correct arguments', (): void => {
-      const useMockedUseCase = jest.fn<UseCaseHook>();
-
-      jest.spyOn(useUseCaseModule, 'useUseCase').mockImplementation(useMockedUseCase);
-
-      renderHook((): void => {
-        try {
-          useStatelessUseCase(numberUseCase);
-        } catch (e) {
-          //
-        }
-      });
-
-      expect(useMockedUseCase).toHaveBeenCalledWith(numberUseCase);
-      jest.spyOn(useUseCaseModule, 'useUseCase').mockRestore();
-    });
-
-    test('should should only return reducers', (): void => {
-      const onChildMount = jest.fn();
-
-      const Child = (): null => {
-        const coreCollection = useStatelessUseCase(numberUseCase);
-
-        useMount((): void => {
-          onChildMount(coreCollection);
-        });
-
-        return null;
-      };
-
-      const Parent = (): React.ReactElement => {
-        const [, , Provider] = useStatelessUseCase(1, numberUseCase);
-
-        return (
-          <Provider>
-            <Child />
-          </Provider>
-        );
-      };
-
-      render(<Parent />);
-
-      expect(onChildMount).toHaveBeenCalledWith([
-        1,
-        {
-          setEntity: expect.any(Function),
-        },
-        null,
+        void 0,
+        void 0,
       ]);
     });
   });

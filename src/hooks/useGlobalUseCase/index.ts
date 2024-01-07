@@ -1,31 +1,18 @@
-import { EntityReducers } from '@mic-rexjs/usecases';
+import { EntityReducerMap, ReducerMap } from '@mic-rexjs/usecases';
 import { GlobalUseCaseHook, GlobalUseCaseHookParameters } from './types';
-import { ContextualEntityReducers } from '@/configs/defaultUseCaseContext/types';
 import { useUseCase } from '../useUseCase';
-import { CoreCollection, ModeCoreCollectionHookParameters } from '../useUseCase/types';
-import { UseCaseModes } from '@/enums/UseCaseModes';
+import { PseudoCoreCollection, RootCoreCollection } from '../useUseCase/types';
+import { transformGlobalArguments } from '@/methods/transformGlobalArguments';
+import { TransformedGlobalParameters } from '@/methods/transformGlobalArguments/types';
 
-export const useGlobalUseCase = (<
-  T,
-  TEntityReducers extends EntityReducers<T>,
-  TUseCaseOptions extends object = object
->(
-  ...args: GlobalUseCaseHookParameters<T, TEntityReducers, TUseCaseOptions>
-): CoreCollection<T, TEntityReducers> | ContextualEntityReducers<T, TEntityReducers> => {
-  const [arg1, arg2, ...rest] = args;
-  const isContextRoot = typeof arg2 === 'function';
+export const useGlobalUseCase = (<T, TReducers extends ReducerMap>(
+  ...args: GlobalUseCaseHookParameters
+): RootCoreCollection<T, EntityReducerMap<T>> | PseudoCoreCollection<TReducers> => {
+  const transformedArgs = transformGlobalArguments(args);
 
-  const coreCollection = useUseCase(
-    ...((isContextRoot ? [arg1, arg2, UseCaseModes.Global, ...rest] : args) as ModeCoreCollectionHookParameters<
-      T,
-      TEntityReducers,
-      TUseCaseOptions
-    >)
-  );
-
-  if (isContextRoot) {
-    return coreCollection as CoreCollection<T, TEntityReducers>;
-  }
-
-  return coreCollection[1] as ContextualEntityReducers<T, TEntityReducers>;
+  return (
+    useUseCase as (
+      ...args: TransformedGlobalParameters
+    ) => RootCoreCollection<T, EntityReducerMap<T>> | PseudoCoreCollection<TReducers>
+  )(...transformedArgs);
 }) as GlobalUseCaseHook;

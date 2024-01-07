@@ -1,40 +1,43 @@
-import React, { FC, ReactElement, ReactNode, useCallback } from 'react';
-import { EntityReducers } from '@mic-rexjs/usecases';
 import { useLatest } from 'ahooks';
-import {
-  ChangeCallback,
-  ContextualEntityReducers,
-  UseCaseContext,
-  UseCaseContextValue,
-} from '@/configs/defaultUseCaseContext/types';
+import React, { FC, ReactElement, ReactNode, useCallback, useMemo } from 'react';
+import { EntityStore, ReducerMap } from '@mic-rexjs/usecases';
+import { UseCaseContext, UseCaseContextValue } from '@/configs/defaultUseCaseContext/types';
 import { UseCaseProvider, UseCaseProviderProps } from './types';
-import { UseCaseModes } from '@/enums/UseCaseModes';
-import { useCompareDeps } from '../useCompareDeps';
 import { useConstantFn } from '../useConstantFn';
+import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 
-export const useProvider = <T, TEntityReducers extends EntityReducers<T>>(
-  context: UseCaseContext<T, TEntityReducers>,
-  mode: UseCaseModes,
-  entity: T,
-  reducers: ContextualEntityReducers<T, TEntityReducers>,
-  changeCallbackCollection: ChangeCallback<T>[]
+export const useProvider = <T, TReducers extends ReducerMap>(
+  statuses: UseCaseStatuses,
+  context: UseCaseContext<UseCaseContextValue<TReducers>>,
+  store: EntityStore<T>,
+  reducers: TReducers
 ): UseCaseProvider => {
-  const isGlobal = (mode & UseCaseModes.Global) === UseCaseModes.Global;
+  const entity = store.getValue();
 
-  const contextValueRef = useLatest<UseCaseContextValue<T, TEntityReducers>>({
-    entity,
-    reducers,
-    changeCallbackCollection,
-  });
+  const contextValue = useMemo((): UseCaseContextValue<TReducers> => {
+    void entity;
 
-  const key = useCompareDeps(isGlobal ? [] : [entity, reducers, changeCallbackCollection]);
+    if ((statuses & UseCaseStatuses.EntityEnabled) === UseCaseStatuses.EntityEnabled) {
+      return {
+        store,
+        reducers,
+      } as UseCaseContextValue<TReducers>;
+    }
 
-  const getContextValue = useCallback((): UseCaseContextValue<T, TEntityReducers> => {
-    void key;
+    return { reducers };
+  }, [statuses, entity, store, reducers]);
+
+  const isGlobal = (statuses & UseCaseStatuses.GlobalEnabled) === UseCaseStatuses.GlobalEnabled;
+  const updateDep = isGlobal ? null : contextValue;
+  const contextValueRef = useLatest(contextValue);
+
+  // 这里必须使用 `useCallback`，因为要使用在 `Provider` 的 `value` 属性上面，需要可变化的
+  const getContextValue = useCallback((): UseCaseContextValue<TReducers> => {
+    void updateDep;
     return contextValueRef.current;
-  }, [key, contextValueRef]);
+  }, [updateDep, contextValueRef]);
 
-  const getContextValueRef = useLatest(getContextValue);
+  const getterRef = useLatest(getContextValue);
 
   return useConstantFn(({ children, with: withProviders = [] }: UseCaseProviderProps): ReactElement => {
     const { Provider: ContextProvider } = context;
@@ -42,7 +45,7 @@ export const useProvider = <T, TEntityReducers extends EntityReducers<T>>(
     return React.createElement(
       ContextProvider,
       {
-        value: getContextValueRef.current,
+        value: getterRef.current,
       },
       withProviders.reduceRight((currentChildren: ReactNode, withProvider: FC): ReactNode => {
         return React.createElement(withProvider, {}, currentChildren);

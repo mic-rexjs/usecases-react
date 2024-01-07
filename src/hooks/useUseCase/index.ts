@@ -1,137 +1,79 @@
-import { useCreation, useMemoizedFn } from 'ahooks';
-import { useContext, useState } from 'react';
-import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
-import { UseCaseHookOptions, UseCaseHook, EntityGetter, CoreCollection, UseCaseHookParameters } from './types';
+import { useCreation } from 'ahooks';
+import { useContext } from 'react';
+import { EntityReducerMap, EntityUseCase, ReducerMap, UseCase } from '@mic-rexjs/usecases';
+import { UseCaseHookOptions, UseCaseHook, CoreCollection, UseCaseHookParameters, PseudoCoreCollection } from './types';
 import { useConstant } from '../useConstant';
 import { useConstantFn } from '../useConstantFn';
 import { useProvider } from '../useProvider';
-import { useCompareDeps } from '../useCompareDeps';
-import { ContextualEntityReducers, UseCaseContext } from '@/configs/defaultUseCaseContext/types';
-import { UseCaseProvider } from '../useProvider/types';
+import { ContextualEntityReducers, EntityUseCaseContextValue } from '@/configs/defaultUseCaseContext/types';
 import { initEntityReducers } from '../../methods/initEntityReducers';
-import { triggerCallbacks } from '@/methods/triggerCallbacks';
-import { getRootEntity } from '@/methods/getRootEntity';
 import { useUseCaseContext } from '../useUseCaseContext';
-import { defaultUseCaseContext } from '@/configs/defaultUseCaseContext';
 import { useIsRenderingRef } from '../useIsRenderingRef';
-import { cacheReducerCalls } from '@/methods/cacheReducerCalls';
-import { UseCaseModes } from '@/enums/UseCaseModes';
-import { toMaxArguments } from '@/methods/toMaxArguments';
-import { useChangeCallbackCollection } from '../useChangeCallbackCollection';
+import { fillArguments } from '@/methods/fillArguments';
+import { useArgumentTypes } from '../useArgumentTypes';
+import { useUseCaseStatuses } from '../useUseCaseStatuses';
+import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
+import { useEntity } from '../useEntity';
+import { useContextualItem } from '../useContextualItem';
+import { cacheCalls } from '@/methods/cacheCalls';
 
-export const useUseCase = (<
-  T,
-  TReducers extends Reducers,
-  TEntityReducers extends EntityReducers<T>,
-  TUseCaseOptions extends object
->(
-  ...args: UseCaseHookParameters<T, TReducers, TEntityReducers, TUseCaseOptions>
-): CoreCollection<T, TEntityReducers> | CoreCollection<T, TEntityReducers, null> | TReducers => {
-  const [unsafeEntity, unsafeUsecase, unsafeMode, options, deps] = toMaxArguments(args);
-  const [entityState, setEntityState] = useState(unsafeEntity);
-
-  const usecase = useConstantFn(unsafeUsecase);
-  const entityUseCase = usecase as EntityUseCase<T, TEntityReducers, TUseCaseOptions>;
-  const mode = useConstant(unsafeMode);
-  const depsKey = useCompareDeps(deps);
-
+export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions extends object>(
+  ...args: UseCaseHookParameters
+): TReducers | CoreCollection<T, EntityReducerMap<T>> | PseudoCoreCollection<TReducers> => {
+  const argumentTypes = useArgumentTypes(args);
+  const fullArguments = fillArguments<T, TReducers, TUseCaseOptions>(args, argumentTypes);
+  const [unsafeEntity, unsafeUsecase, unsafeMode, options, deps] = fullArguments;
+  const unkownUsecase = useConstantFn(unsafeUsecase);
+  const usecase = unkownUsecase as UseCase<TReducers, TUseCaseOptions>;
+  const entityUseCase = unkownUsecase as EntityUseCase<T, EntityReducerMap<T>, TUseCaseOptions>;
   const isRenderingRef = useIsRenderingRef();
-  const isContextRoot = useConstant(typeof args[1] === 'function');
+  const mode = useConstant(unsafeMode);
+  const context = useUseCaseContext(unkownUsecase, argumentTypes, mode);
+  const contextValue = useContext(context)?.() || null;
+  const entityContextValue = contextValue as EntityUseCaseContextValue<T, EntityReducerMap<T>> | null;
+  const statuses = useUseCaseStatuses(argumentTypes, mode, contextValue);
+  const { reducers: contextReducers = null } = contextValue || {};
+  const { store: contextStore = null } = entityContextValue || {};
+  const [entity, store] = useEntity(statuses, unsafeEntity, contextStore, options);
 
-  const defaultContext = defaultUseCaseContext as UseCaseContext<T, TEntityReducers>;
-  const context = useUseCaseContext(entityUseCase, isContextRoot ? null : defaultContext);
-  const getContextValue = useContext(context);
-  const hasContextValueGetter = getContextValue !== null;
+  const reducers = useContextualItem(
+    statuses,
+    contextReducers,
+    (): TReducers => {
+      if ((statuses & UseCaseStatuses.EntityEnabled) !== UseCaseStatuses.EntityEnabled) {
+        return usecase(options as TUseCaseOptions);
+      }
 
-  const {
-    entity: contextEntity,
-    reducers: contextEntityReducers = null,
-    changeCallbackCollection: contextChangeCallbackCollection = null,
-  } = getContextValue?.() || {};
+      const hookOptions = options as UseCaseHookOptions<T, TUseCaseOptions>;
 
-  // 是否需要初始化根 `redurcers`
-  const isRoot = isContextRoot || !hasContextValueGetter;
-  // 是否为上下文模式
-  const isContextMode = isContextRoot || hasContextValueGetter;
-
-  const changeCallbackCollection = useChangeCallbackCollection(
-    isRoot,
-    contextChangeCallbackCollection,
-    options as UseCaseHookOptions<T, TUseCaseOptions>
+      return initEntityReducers(entityUseCase, store, hookOptions) as ReducerMap as TReducers;
+    },
+    deps
   );
 
-  const entity = useCreation((): T => {
-    if (!isContextRoot) {
-      return contextEntity as T;
+  const Provider = useProvider(statuses, context, store, reducers);
+
+  return useCreation((): TReducers | CoreCollection<T, EntityReducerMap<T>> | PseudoCoreCollection<TReducers> => {
+    if ((statuses & UseCaseStatuses.ContextEnabled) !== UseCaseStatuses.ContextEnabled) {
+      return reducers;
     }
 
-    return getRootEntity(entityState as T, unsafeEntity as T | EntityGetter<T>, mode);
-  }, [isContextRoot, contextEntity, mode, entityState, unsafeEntity]);
+    const rootEnabled = (statuses & UseCaseStatuses.RootEnabled) === UseCaseStatuses.RootEnabled;
 
-  const onEntityChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
-    if ((mode & UseCaseModes.Stateless) !== UseCaseModes.Stateless) {
-      setEntityState(newEntity);
+    if ((statuses & UseCaseStatuses.EntityEnabled) !== UseCaseStatuses.EntityEnabled) {
+      return rootEnabled ? [reducers, Provider] : reducers;
     }
 
-    triggerCallbacks(changeCallbackCollection, newEntity, oldEntity);
-  });
+    const cachedReducers = cacheCalls(reducers as ReducerMap as ContextualEntityReducers<T, EntityReducerMap<T>>, {
+      onShouldCache(): boolean {
+        return isRenderingRef.current;
+      },
+    });
 
-  const createRootEntityReducers = useMemoizedFn((): ContextualEntityReducers<T, TEntityReducers> => {
-    const initOptions = options as UseCaseHookOptions<T, TUseCaseOptions>;
-
-    return initEntityReducers(entity, entityUseCase, initOptions, onEntityChange);
-  });
-
-  const createReducers = useMemoizedFn((): TReducers => {
-    return (usecase as UseCase<TReducers, TUseCaseOptions>)(options as TUseCaseOptions);
-  });
-
-  const rootEntityReducers = useCreation((): ContextualEntityReducers<T, TEntityReducers> | null => {
-    void depsKey;
-
-    if (!isContextRoot) {
-      return null;
+    if (rootEnabled) {
+      return [entity, cachedReducers, Provider];
     }
 
-    return createRootEntityReducers();
-  }, [isContextRoot, depsKey, createRootEntityReducers]);
-
-  const entityReducers = useCreation((): ContextualEntityReducers<T, TEntityReducers> => {
-    return rootEntityReducers || contextEntityReducers || ({} as ContextualEntityReducers<T, TEntityReducers>);
-  }, [rootEntityReducers, contextEntityReducers]);
-
-  const reducers = useCreation((): TReducers => {
-    void depsKey;
-
-    if (isContextMode) {
-      return {} as TReducers;
-    }
-
-    return createReducers();
-  }, [isContextMode, depsKey, createReducers]);
-
-  const Provider = useProvider(context, mode, entity, entityReducers, changeCallbackCollection);
-
-  const createCoreCollection = useMemoizedFn(
-    (
-      coreEntity: T,
-      coreReducers: ContextualEntityReducers<T, TEntityReducers>
-    ): CoreCollection<T, TEntityReducers, UseCaseProvider | null> => {
-      return [
-        coreEntity,
-        cacheReducerCalls(coreReducers, (): boolean => {
-          return isRenderingRef.current;
-        }),
-        isContextRoot ? Provider : null,
-      ];
-    }
-  );
-
-  return useCreation((): TReducers | CoreCollection<T, TEntityReducers, UseCaseProvider | null> => {
-    if (isContextMode) {
-      return createCoreCollection(entity, entityReducers);
-    }
-
-    return reducers as TReducers;
-  }, [isContextMode, entity, entityReducers, reducers, createCoreCollection]);
+    return [entity, cachedReducers];
+  }, [statuses, entity, reducers, Provider, isRenderingRef]);
 }) as UseCaseHook;

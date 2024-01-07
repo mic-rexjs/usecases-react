@@ -1,37 +1,45 @@
-import { AsyncEntityGenerator, EntityGenerator, EntityReducer, EntityReducers } from '@mic-rexjs/usecases';
-
-export type ContextualEntityReducer<T, TReducer extends EntityReducer<T>> = TReducer extends (
-  entity: T,
-  ...args: infer TArgs
-) => infer TReturn
-  ? (
-      ...args: TArgs
-    ) => TReturn extends AsyncEntityGenerator<T, infer TResult>
-      ? Promise<TResult>
-      : TReturn extends EntityGenerator<T, infer TResult>
-      ? TResult
-      : TReturn
-  : never;
-
-export type ContextualEntityReducers<T, TEntityReducers extends EntityReducers<T>> = {
-  [K in keyof TEntityReducers]: ContextualEntityReducer<T, TEntityReducers[K]>;
-};
+import {
+  AsyncEntityGenerator,
+  EntityGenerator,
+  EntityReducer,
+  EntityReducerMap,
+  EntityStore,
+  ReducerMap,
+} from '@mic-rexjs/usecases';
 
 export interface ChangeCallback<T> {
   (newEntity: T, oldEntity: T): void;
 }
 
-export interface UseCaseContextValue<T, TEntityReducers extends EntityReducers<T>> {
-  entity?: T;
+export type ContextualEntityReducer<T, TEntityReducer extends EntityReducer<T>> = TEntityReducer extends (
+  // 不能使用 `T`, 假设 `T = 1` 而且 `TEntityReducer = EntityReducer<number>`，那么下面推导就会不成立
+  entity: infer TEntity,
+  ...args: infer TArgs
+) => infer TReturn
+  ? (
+      ...args: TArgs
+    ) => TReturn extends AsyncEntityGenerator<TEntity, infer TResult>
+      ? Promise<TResult>
+      : TReturn extends EntityGenerator<TEntity, infer TResult>
+      ? TResult
+      : TReturn
+  : never;
 
-  reducers?: ContextualEntityReducers<T, TEntityReducers>;
+export type ContextualEntityReducers<T, TEntityReducers extends EntityReducerMap<T>> = {
+  [K in keyof TEntityReducers]: ContextualEntityReducer<T, TEntityReducers[K]>;
+};
 
-  changeCallbackCollection?: ChangeCallback<T>[];
+export interface UseCaseContextValue<T extends ReducerMap> {
+  reducers: T;
 }
 
-export interface UseCaseContextValueGetter<T, TEntityReducers extends EntityReducers<T>> {
-  (): UseCaseContextValue<T, TEntityReducers>;
+export interface EntityUseCaseContextValue<T, TEntityReducers extends EntityReducerMap<T>>
+  extends UseCaseContextValue<ContextualEntityReducers<T, TEntityReducers>> {
+  store: EntityStore<T>;
 }
 
-export interface UseCaseContext<T, TEntityReducers extends EntityReducers<T>>
-  extends React.Context<UseCaseContextValueGetter<T, TEntityReducers> | null> {}
+export interface UseCaseContextValueGetter<T> {
+  (): T;
+}
+
+export interface UseCaseContext<T> extends React.Context<UseCaseContextValueGetter<T> | null> {}

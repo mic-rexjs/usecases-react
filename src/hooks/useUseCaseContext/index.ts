@@ -1,25 +1,28 @@
-import { EntityReducers, EntityUseCase, UseCase } from '@mic-rexjs/usecases';
+import { ReducerMap, UseCase } from '@mic-rexjs/usecases';
 import { useConstant } from '../useConstant';
 import { UseCaseContextReference, UseCaseContextReferenceMap } from '@/configs/useCaseContextReferenceMap/types';
 import { usecaseContextReferenceMap } from '@/configs/useCaseContextReferenceMap';
 import { createContext } from 'react';
-import { UseCaseContext } from '@/configs/defaultUseCaseContext/types';
+import { UseCaseContext, UseCaseContextValue } from '@/configs/defaultUseCaseContext/types';
 import { useUnmount } from 'ahooks';
+import { UseCaseArgumentTypes } from '@/enums/UseCaseArgumentTypes';
+import { UseCaseModes } from '@/enums/UseCaseModes';
+import { defaultUseCaseContext } from '@/configs/defaultUseCaseContext';
 
 export const useUseCaseContext = <
-  T,
-  TEntityReducers extends EntityReducers<T>,
+  T extends ReducerMap,
   TUseCaseOptions extends object,
-  TContext extends UseCaseContext<T, TEntityReducers> = UseCaseContext<T, TEntityReducers>
+  TContext extends UseCaseContext<UseCaseContextValue<T>>
 >(
-  usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> & UseCase<EntityReducers<T>, TUseCaseOptions>,
-  defaultContext?: (TContext & UseCaseContext<T, TEntityReducers>) | null
+  usecase: UseCase<T, TUseCaseOptions>,
+  argumentTypes = UseCaseArgumentTypes.None,
+  mode = UseCaseModes.Normal
 ): TContext => {
-  const map = usecaseContextReferenceMap as UseCaseContextReferenceMap<T, TEntityReducers, TUseCaseOptions, TContext>;
+  const map = usecaseContextReferenceMap as UseCaseContextReferenceMap<T, TUseCaseOptions>;
 
   const context = useConstant((): TContext => {
     if (map.has(usecase)) {
-      const reference = map.get(usecase) as UseCaseContextReference<T, TEntityReducers, TContext>;
+      const reference = map.get(usecase) as UseCaseContextReference<UseCaseContextValue<T>>;
       const { value, times } = reference;
 
       map.set(usecase, {
@@ -27,17 +30,22 @@ export const useUseCaseContext = <
         times: times + 1,
       });
 
-      return value;
+      return value as TContext;
     }
 
-    if (defaultContext) {
-      return defaultContext;
+    switch (true) {
+      case (mode & UseCaseModes.Global) === UseCaseModes.Global:
+      case (argumentTypes & UseCaseArgumentTypes.Entity) === UseCaseArgumentTypes.Entity:
+        break;
+
+      default:
+        return defaultUseCaseContext as TContext;
     }
 
     const ctx = createContext(null) as TContext;
 
     map.set(usecase, {
-      value: ctx,
+      value: ctx as UseCaseContext<UseCaseContextValue<T>>,
       times: 1,
     });
 
@@ -49,7 +57,7 @@ export const useUseCaseContext = <
       return;
     }
 
-    const reference = map.get(usecase) as UseCaseContextReference<T, TEntityReducers, TContext>;
+    const reference = map.get(usecase) as UseCaseContextReference<UseCaseContextValue<T>>;
     const { value, times } = reference;
 
     if (context !== value) {
