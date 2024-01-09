@@ -38,8 +38,4 @@ export interface EntityUseCaseContextValue<T, TEntityReducers extends EntityRedu
   store: EntityStore<T>;
 }
 
-export interface UseCaseContextValueGetter<T> {
-  (): T;
-}
-
-export interface UseCaseContext<T> extends React.Context<UseCaseContextValueGetter<T> | null> {}
+export interface UseCaseContext<T> extends React.Context<T | null> {}

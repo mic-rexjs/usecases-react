@@ -2,7 +2,6 @@ import { useCreation } from 'ahooks';
 import { useContext } from 'react';
 import { EntityReducerMap, EntityUseCase, ReducerMap, UseCase } from '@mic-rexjs/usecases';
 import { UseCaseHookOptions, UseCaseHook, CoreCollection, UseCaseHookParameters, PseudoCoreCollection } from './types';
-import { useConstant } from '../useConstant';
 import { useConstantFn } from '../useConstantFn';
 import { useProvider } from '../useProvider';
 import { ContextualEntityReducers, EntityUseCaseContextValue } from '@/configs/defaultUseCaseContext/types';
@@ -16,6 +15,7 @@ import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 import { useEntity } from '../useEntity';
 import { useContextualItem } from '../useContextualItem';
 import { cacheCalls } from '@/methods/cacheCalls';
+import { useSafeMode } from '../useSafeMode';
 
 export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions extends object>(
   ...args: UseCaseHookParameters
@@ -27,9 +27,9 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
   const usecase = unkownUsecase as UseCase<TReducers, TUseCaseOptions>;
   const entityUseCase = unkownUsecase as EntityUseCase<T, EntityReducerMap<T>, TUseCaseOptions>;
   const isRenderingRef = useIsRenderingRef();
-  const mode = useConstant(unsafeMode);
+  const mode = useSafeMode(unsafeMode, argumentTypes);
   const context = useUseCaseContext(unkownUsecase, argumentTypes, mode);
-  const contextValue = useContext(context)?.() || null;
+  const contextValue = useContext(context);
   const entityContextValue = contextValue as EntityUseCaseContextValue<T, EntityReducerMap<T>> | null;
   const statuses = useUseCaseStatuses(argumentTypes, mode, contextValue);
   const { reducers: contextReducers = null } = contextValue || {};

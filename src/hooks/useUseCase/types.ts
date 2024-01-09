@@ -93,14 +93,14 @@ export type UseCaseHookOptions<T, TUseCaseOptions extends object = object> = TUs
   UseCaseHookOwnOptions<T, TUseCaseOptions>;
 
 export interface ContextualCoreCollectionHook {
-  <T, TEntityReducers extends EntityReducers<T>, TUseCaseOptions extends object = object>(
-    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> &
+  <T, TEntityReducers extends EntityReducers<T>>(
+    usecase: EntityUseCase<T, TEntityReducers> &
       /**
        * 如果不使用 `&`，那么很多情况下 `options` 类型无法被正确推导；
        * 因为使用 `&` 是为了让该参数 `usecase` 的泛型 `T` 推导占优先级，
        * 从而保证 `options` 里的泛型 `T` 是根据 `usecase` 来推导的。
        */
-      UseCase<EntityReducerMap<T>, TUseCaseOptions>,
+      UseCase<EntityReducerMap<T>>,
     options?: UseCaseHookContextualOptions<T>
   ): ContextualCoreCollection<T, TEntityReducers>;
 }
@@ -131,6 +131,9 @@ export interface ModeCoreCollectionHook {
        */
       UseCase<EntityReducerMap<T>, TUseCaseOptions>,
     // 不能用可选，不然无法准确识别参数
+    /**
+     * currently, only support `UseCaseModes.Stateless`
+     */
     mode: UseCaseModes,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
     deps?: unknown[]
@@ -140,6 +143,9 @@ export interface ModeCoreCollectionHook {
 export interface PseudoCoreCollectionHook {
   <T extends Reducers, TUseCaseOptions extends object = object>(
     usecase: UseCase<T, TUseCaseOptions>,
+    /**
+     * currently, only support `UseCaseModes.Global`
+     */
     mode: UseCaseModes,
     options?: TUseCaseOptions,
     deps?: unknown[]
