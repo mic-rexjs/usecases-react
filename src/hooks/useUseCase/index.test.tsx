@@ -685,14 +685,14 @@ describe('useUseCase', (): void => {
         toThrow: '',
       },
     ])('does not support global mode', ({ mode, toThrow }: { mode: UseCaseModes; toThrow: string }): void => {
-      expect((): void => {
-        renderHook((): void => {
+      renderHook((): void => {
+        expect((): void => {
           useUseCase(defaultFile, fileUseCase, mode);
-        });
 
-        // 如果上面测试成功，则手动 throw ''，保证与 toThrow 的值一致
-        throw '';
-      }).toThrow(toThrow);
+          // 如果上面测试成功，则手动 throw ''，保证与 toThrow 的值一致
+          throw '';
+        }).toThrow(toThrow);
+      });
     });
 
     test('stateless mode should not generate new reducers when `yeild entity`', (): void => {
@@ -2014,14 +2014,14 @@ describe('useUseCase', (): void => {
         toThrow: UseCaseModeErrors.UnsupportedStateless,
       },
     ])('does not support stateless mode', ({ mode, toThrow }: { mode: UseCaseModes; toThrow: string }): void => {
-      expect((): void => {
-        renderHook((): void => {
+      renderHook((): void => {
+        expect((): void => {
           useUseCase(mathUseCase, mode);
-        });
 
-        // 如果上面测试成功，则手动 throw ''，保证与 toThrow 的值一致
-        throw '';
-      }).toThrow(toThrow);
+          // 如果上面测试成功，则手动 throw ''，保证与 toThrow 的值一致
+          throw '';
+        }).toThrow(toThrow);
+      });
     });
 
     test('the return value should be `reducers` object at child component', (): void => {

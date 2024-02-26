@@ -12,7 +12,7 @@ export const useProvider = <T, TReducers extends ReducerMap>(
   store: EntityStore<T>,
   reducers: TReducers
 ): UseCaseProvider => {
-  const entity = store.getValue();
+  const { value: entity } = store;
 
   const contextValue = useMemo((): UseCaseContextValue<TReducers> => {
     void entity;

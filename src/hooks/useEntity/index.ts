@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { EntityStore } from '@mic-rexjs/usecases';
+import { EntityStore, EntityChangeEvent } from '@mic-rexjs/usecases';
 import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 import { getRenderingEntity } from '@/methods/getRenderingEntity';
 import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
@@ -18,7 +18,7 @@ export const useEntity = <
   options: TOptions
 ): [entity: T, store: EntityStore<T>] => {
   const [entityState, setEntityState] = useState(rootEntity);
-  const contextEntity = (contextStore?.getValue() || null) as T;
+  const contextEntity = (contextStore ? contextStore.value : null) as T;
   const renderingEntity = getRenderingEntity(statuses, entityState, rootEntity, contextEntity);
   const optionsRef = useLatest(options);
   const entityRootEnabled = (statuses & UseCaseStatuses.EntityRootEnabled) === UseCaseStatuses.EntityRootEnabled;
@@ -30,18 +30,20 @@ export const useEntity = <
 
     const stateless = (statuses & UseCaseStatuses.StatelessEnabled) === UseCaseStatuses.StatelessEnabled;
 
-    return new EntityStore(renderingEntity, (newEntity: T): void => {
-      if (stateless) {
-        return;
-      }
+    return new EntityStore(renderingEntity, {
+      onChange({ newEntity }: EntityChangeEvent<T>): void {
+        if (stateless) {
+          return;
+        }
 
-      setEntityState(newEntity);
+        setEntityState(newEntity);
+      },
     });
   });
 
   if (entityRootEnabled) {
     // 执行同步操作
-    store.setValue(renderingEntity);
+    store.value = renderingEntity;
   }
 
   useEffect((): void | VoidFunction => {
@@ -49,7 +51,8 @@ export const useEntity = <
       return;
     }
 
-    const watcher = (newEntity: T, oldEntity: T): void => {
+    const onEntityChange = (e: Event): void => {
+      const { newEntity, oldEntity } = e as EntityChangeEvent<T>;
       const { onChange, watch } = optionsRef.current;
 
       if (watch) {
@@ -59,10 +62,10 @@ export const useEntity = <
       onChange?.(newEntity, oldEntity);
     };
 
-    store.watch(watcher);
+    store.addEventListener('change', onEntityChange);
 
     return (): void => {
-      store.unwatch(watcher);
+      store.removeEventListener('change', onEntityChange);
     };
   }, [statuses, store, optionsRef]);
 
