@@ -14,10 +14,14 @@ const initConfig = (): Configuration => {
     output: {
       filename: 'index.min.js',
       path: distPath,
-      libraryTarget: 'umd',
-      globalObject: 'this',
+      library: { name: 'usecases', type: 'assign-properties' },
+      globalObject: 'globalThis',
     },
-    externals: ['@mic-rexjs/usecases', 'react', 'ahooks'],
+    externals: {
+      '@mic-rexjs/usecases': 'usecases',
+      react: 'React',
+      ahooks: 'ahooks',
+    },
     resolve: {
       extensions: ['.js'],
     },
