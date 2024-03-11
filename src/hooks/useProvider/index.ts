@@ -10,7 +10,7 @@ export const useProvider = <T, TReducers extends ReducerMap>(
   statuses: UseCaseStatuses,
   context: UseCaseContext<UseCaseContextValue<TReducers>>,
   store: EntityStore<T>,
-  reducers: TReducers
+  reducers: TReducers,
 ): UseCaseProvider => {
   const { value: entity } = store;
 
@@ -39,7 +39,7 @@ export const useProvider = <T, TReducers extends ReducerMap>(
       },
       withProviders.reduceRight((currentChildren: ReactNode, withProvider: FC): ReactNode => {
         return React.createElement(withProvider, {}, currentChildren);
-      }, children)
+      }, children),
     );
   });
 };

@@ -29,8 +29,8 @@ const initConfig = (): Config => {
               return p.replace(/^\.\//g, '<rootDir>/');
             }),
           ];
-        })
-      )
+        }),
+      ),
     ),
   };
 };

@@ -7,7 +7,7 @@ export const useContextualItem = <T>(
   statuses: UseCaseStatuses,
   contextItem: T | null,
   createFactory: CreateContextualItemFactory<T>,
-  deps: unknown[] = []
+  deps: unknown[] = [],
 ): T => {
   const create = useMemoizedCall(createFactory, deps);
 

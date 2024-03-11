@@ -6,7 +6,7 @@ import { UseCaseArgumentTypes } from '@/enums/UseCaseArgumentTypes';
 
 export const fillArguments = <T, TReducers extends ReducerMap, TUseCaseOptions extends object>(
   args: UseCaseHookParameters,
-  argumentTypes: UseCaseArgumentTypes
+  argumentTypes: UseCaseArgumentTypes,
 ): UseCaseHookFullParameters<T, TReducers, TUseCaseOptions> => {
   const [arg1, arg2, arg3, arg4, arg5] = args;
   const hasEntity = (argumentTypes & UseCaseArgumentTypes.Entity) === UseCaseArgumentTypes.Entity;

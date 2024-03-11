@@ -6,12 +6,12 @@ import { ContextualEntityReducers } from '@/configs/defaultUseCaseContext/types'
 export type RootCoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = [
   entity: T,
   reducers: ContextualEntityReducers<T, TEntityReducers>,
-  Provider: UseCaseProvider
+  Provider: UseCaseProvider,
 ];
 
 export type ContextualCoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = [
   entity: T,
-  reducers: ContextualEntityReducers<T, TEntityReducers>
+  reducers: ContextualEntityReducers<T, TEntityReducers>,
 ];
 
 export type CoreCollection<T, TEntityReducers extends EntityReducerMap<T>> =
@@ -20,7 +20,7 @@ export type CoreCollection<T, TEntityReducers extends EntityReducerMap<T>> =
 
 export type PseudoCoreCollection<T extends ReducerMap, TProvider extends UseCaseProvider | null = UseCaseProvider> = [
   reducers: T,
-  Provider: TProvider
+  Provider: TProvider,
 ];
 
 export interface EntityGetter<T> {
@@ -50,26 +50,26 @@ export type PropertyPath<T, K extends keyof T = keyof T & string> = K extends in
 export type DotAccessorFieldPath<T> = T extends unknown[]
   ? '.length' | `${'' | `.${number}`}${DotAccessorFieldPath<T[number]>}`
   : T extends object
-  ? `.${PropertyPath<T>}`
-  : '';
+    ? `.${PropertyPath<T>}`
+    : '';
 
 export type FieldPath<T> = T extends unknown[]
   ? FieldPath<T[number]> | 'length'
   : T extends object
-  ? PropertyPath<T>
-  : never;
+    ? PropertyPath<T>
+    : never;
 
 export type ExtractPropertyType<T, TPath> = TPath extends `${infer TKey}.${infer TSubPath}`
   ? T extends unknown[]
     ? ExtractPropertyType<T[number], TKey extends `${number}` ? TSubPath : TPath>
     : ExtractPropertyType<T[TKey & keyof T], TSubPath>
   : T extends unknown[]
-  ? TPath extends 'length'
-    ? T[TPath]
-    : TPath extends `${number}`
-    ? T[number]
-    : ExtractPropertyType<T[number], TPath>
-  : T[TPath & keyof T];
+    ? TPath extends 'length'
+      ? T[TPath]
+      : TPath extends `${number}`
+        ? T[number]
+        : ExtractPropertyType<T[number], TPath>
+    : T[TPath & keyof T];
 
 export type ExtractFieldType<T, TPath> = TPath extends `${infer TKey}.${infer TSubProperty}`
   ? ExtractPropertyType<T[TKey & keyof T], TSubProperty>
@@ -101,7 +101,7 @@ export interface ContextualCoreCollectionHook {
        * 从而保证 `options` 里的泛型 `T` 是根据 `usecase` 来推导的。
        */
       UseCase<EntityReducerMap<T>>,
-    options?: UseCaseHookContextualOptions<T>
+    options?: UseCaseHookContextualOptions<T>,
   ): ContextualCoreCollection<T, TEntityReducers>;
 }
 
@@ -116,7 +116,7 @@ export interface RootCoreCollectionHook {
        */
       UseCase<EntityReducerMap<T>, TUseCaseOptions>,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
-    deps?: unknown[]
+    deps?: unknown[],
   ): RootCoreCollection<T, TEntityReducers>;
 }
 
@@ -136,7 +136,7 @@ export interface ModeCoreCollectionHook {
      */
     mode: UseCaseModes,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
-    deps?: unknown[]
+    deps?: unknown[],
   ): RootCoreCollection<T, TEntityReducers>;
 }
 
@@ -148,7 +148,7 @@ export interface PseudoCoreCollectionHook {
      */
     mode: UseCaseModes,
     options?: TUseCaseOptions,
-    deps?: unknown[]
+    deps?: unknown[],
   ): PseudoCoreCollection<T>;
 }
 
@@ -156,7 +156,7 @@ export interface ReducersHook {
   <T extends Reducers, TUseCaseOptions extends object = object>(
     usecase: UseCase<T, TUseCaseOptions>,
     options?: TUseCaseOptions,
-    deps?: unknown[]
+    deps?: unknown[],
   ): T;
 }
 

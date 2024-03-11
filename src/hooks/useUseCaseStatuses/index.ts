@@ -8,7 +8,7 @@ import { useCreation } from 'ahooks';
 export const useUseCaseStatuses = <T, TReducers extends ReducerMap>(
   argumentTypes: UseCaseArgumentTypes,
   mode: UseCaseModes,
-  contextValue: UseCaseContextValue<TReducers> | null
+  contextValue: UseCaseContextValue<TReducers> | null,
 ): UseCaseStatuses => {
   return useCreation((): UseCaseStatuses => {
     let statuses = UseCaseStatuses.None;

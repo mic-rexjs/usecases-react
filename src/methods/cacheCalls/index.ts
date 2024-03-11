@@ -3,7 +3,7 @@ import { cacheCall } from '../cacheCall';
 
 export const cacheCalls = <T extends Record<string, CacheableFactory>>(
   sourceFactories: T,
-  options?: CacheCallOptions
+  options?: CacheCallOptions,
 ): T => {
   const cachedFactories: Partial<T> = {};
 

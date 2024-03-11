@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { EntityStore, EntityChangeEvent } from '@mic-rexjs/usecases';
+import { EntityStore } from '@mic-rexjs/usecases';
 import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 import { getRenderingEntity } from '@/methods/getRenderingEntity';
 import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
@@ -10,12 +10,12 @@ import { triggerWatchers } from '@/methods/triggerWatchers';
 export const useEntity = <
   T,
   TUseCaseOptions extends object,
-  TOptions extends UseCaseHookOptions<T, TUseCaseOptions> = UseCaseHookOptions<T, TUseCaseOptions>
+  TOptions extends UseCaseHookOptions<T, TUseCaseOptions> = UseCaseHookOptions<T, TUseCaseOptions>,
 >(
   statuses: UseCaseStatuses,
   rootEntity: T | EntityGetter<T>,
   contextStore: EntityStore<T> | null,
-  options: TOptions
+  options: TOptions,
 ): [entity: T, store: EntityStore<T>] => {
   const [entityState, setEntityState] = useState(rootEntity);
   const contextEntity = (contextStore ? contextStore.value : null) as T;
@@ -31,7 +31,7 @@ export const useEntity = <
     const stateless = (statuses & UseCaseStatuses.StatelessEnabled) === UseCaseStatuses.StatelessEnabled;
 
     return new EntityStore(renderingEntity, {
-      onChange({ newEntity }: EntityChangeEvent<T>): void {
+      onChange(newEntity: T): void {
         if (stateless) {
           return;
         }
@@ -51,8 +51,7 @@ export const useEntity = <
       return;
     }
 
-    const onEntityChange = (e: Event): void => {
-      const { newEntity, oldEntity } = e as EntityChangeEvent<T>;
+    const onEntityChange = (newEntity: T, oldEntity: T): void => {
       const { onChange, watch } = optionsRef.current;
 
       if (watch) {
@@ -62,10 +61,10 @@ export const useEntity = <
       onChange?.(newEntity, oldEntity);
     };
 
-    store.addEventListener('change', onEntityChange);
+    store.watch(onEntityChange);
 
     return (): void => {
-      store.removeEventListener('change', onEntityChange);
+      store.unwatch(onEntityChange);
     };
   }, [statuses, store, optionsRef]);
 

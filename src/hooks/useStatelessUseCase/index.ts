@@ -8,7 +8,7 @@ export const useStatelessUseCase = (<T, TEntityReducers extends EntityReducers<T
   entity: T | EntityGetter<T>,
   useCase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
   options?: UseCaseHookOptions<T, TUseCaseOptions>,
-  deps?: unknown[]
+  deps?: unknown[],
 ): RootCoreCollection<T, TEntityReducers> => {
   return useUseCase(entity, useCase, UseCaseModes.Stateless, options, deps);
 }) as StatelessUseCaseHook;

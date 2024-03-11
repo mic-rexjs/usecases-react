@@ -5,11 +5,11 @@ import { ContextualEntityReducers } from '@/configs/defaultUseCaseContext/types'
 export const initEntityReducers = <
   T,
   TEntityReducers extends EntityReducerMap<T>,
-  TUseCaseOptions extends object = object
+  TUseCaseOptions extends object = object,
 >(
   usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
   store: EntityStore<T>,
-  options: UseCaseHookOptions<T, TUseCaseOptions>
+  options: UseCaseHookOptions<T, TUseCaseOptions>,
 ): ContextualEntityReducers<T, TEntityReducers> => {
   const { watch, onChange, options: usecaseOptions, ...restUseCaseOptions } = options;
 
@@ -22,6 +22,6 @@ export const initEntityReducers = <
       onGenerate<TResult>(newEntity: T, result: TResult): TResult {
         return result;
       },
-    } as TUseCaseOptions
+    } as TUseCaseOptions,
   );
 };

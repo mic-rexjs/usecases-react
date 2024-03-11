@@ -48,7 +48,7 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
 
       return initEntityReducers(entityUseCase, store, hookOptions) as ReducerMap as TReducers;
     },
-    deps
+    deps,
   );
 
   const Provider = useProvider(statuses, context, store, reducers);

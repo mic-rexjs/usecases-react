@@ -6,7 +6,7 @@ export const compareProperty = <T, S>(
   to: S,
   fieldPath: string,
   callback: ComparePropertyCallback,
-  fieldPathStack: string[] = []
+  fieldPathStack: string[] = [],
 ): void => {
   const undef = void 0;
   const [, key = fieldPath, subFieldPath = ''] = fieldPath.match(/^([^.]+)\.(.+)$/) || [];

@@ -12,11 +12,11 @@ import { defaultUseCaseContext } from '@/configs/defaultUseCaseContext';
 export const useUseCaseContext = <
   T extends ReducerMap,
   TUseCaseOptions extends object,
-  TContext extends UseCaseContext<UseCaseContextValue<T>>
+  TContext extends UseCaseContext<UseCaseContextValue<T>>,
 >(
   usecase: UseCase<T, TUseCaseOptions>,
   argumentTypes = UseCaseArgumentTypes.None,
-  mode = UseCaseModes.Normal
+  mode = UseCaseModes.Normal,
 ): TContext => {
   const map = usecaseContextReferenceMap as UseCaseContextReferenceMap<T, TUseCaseOptions>;
 

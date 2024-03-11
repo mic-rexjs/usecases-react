@@ -269,7 +269,7 @@ const useDeepCompareUpdate = (callback: VoidFunction, deps: unknown[]): void => 
 
       callback();
     },
-    deps
+    deps,
   );
 };
 
@@ -705,7 +705,7 @@ describe('useUseCase', (): void => {
           });
 
           return useUseCase(file, fileUseCase, UseCaseModes.Stateless);
-        }
+        },
       );
 
       const { current: cores } = result;
@@ -1364,7 +1364,7 @@ describe('useUseCase', (): void => {
               'list.length': onListLengthChange,
             },
           });
-        }
+        },
       );
 
       const { current: cores } = result;
@@ -1636,7 +1636,7 @@ describe('useUseCase', (): void => {
             <Parent mode={mode} onSetPath={onSetPath} onUpdate={onParentUpdate}>
               <Child onUpdate={onChildUpdate} onPathChange={onPathChange} onUndefinedEntity={onUndefinedEntity} />
             </Parent>
-          </div>
+          </div>,
         );
 
         fireEvent.click(screen.getByText(PARENT_BUTTON_TEXT));
@@ -1651,7 +1651,7 @@ describe('useUseCase', (): void => {
         expect(onChildUpdate).toHaveBeenCalledTimes(2);
         expect(onPathChange).toHaveBeenCalledWith(PATH_2);
         expect(onUndefinedEntity).toHaveBeenCalledTimes(0);
-      }
+      },
     );
 
     test.each([UseCaseModes.Stateless, UseCaseModes.StatelessGlobal])(
@@ -1669,7 +1669,7 @@ describe('useUseCase', (): void => {
             <Parent mode={UseCaseModes.Stateless} onSetPath={onSetPath} onUpdate={onParentUpdate}>
               <Child onUpdate={onChildUpdate} />
             </Parent>
-          </div>
+          </div>,
         );
 
         fireEvent.click(screen.getByText(PARENT_BUTTON_TEXT));
@@ -1681,7 +1681,7 @@ describe('useUseCase', (): void => {
         expect(onSetPath).toHaveBeenCalledTimes(1);
         expect(onParentUpdate).toHaveBeenCalledTimes(0);
         expect(onChildUpdate).toHaveBeenCalledTimes(0);
-      }
+      },
     );
 
     test('`usecase` should not be called at child component', (): void => {

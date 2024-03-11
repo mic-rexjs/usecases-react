@@ -83,7 +83,7 @@ describe('useUseCaseContext', (): void => {
       const { current: isSame } = result;
 
       expect(isSame).toBe(true);
-    }
+    },
   );
 
   test('check context reference times when mount/unmount a usecase', (): void => {

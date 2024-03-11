@@ -7,5 +7,5 @@ export type UseCaseHookFullParameters<T, TReducers extends ReducerMap, TUseCaseO
   usecase: UseCase<TReducers, TUseCaseOptions> | EntityUseCase<T, TReducers & EntityReducerMap<T>, TUseCaseOptions>,
   mode: UseCaseModes,
   options: TUseCaseOptions | UseCaseHookOptions<T, TUseCaseOptions> | UseCaseHookContextualOptions<T>,
-  deps: unknown[]
+  deps: unknown[],
 ];

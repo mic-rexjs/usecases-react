@@ -15,7 +15,7 @@ export const triggerWatchers = <T>(watch: EntityWatchMap<T>, newEntity: T, oldEn
           newValue,
           oldValue,
         });
-      }
+      },
     );
   }
 };

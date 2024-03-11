@@ -7,7 +7,7 @@ import { UseCaseModes } from '@/enums/UseCaseModes';
 export const useGlobalUseCase = (<T extends Reducers, TUseCaseOptions extends object>(
   useCase: UseCase<T, TUseCaseOptions>,
   options?: TUseCaseOptions,
-  deps?: unknown[]
+  deps?: unknown[],
 ): PseudoCoreCollection<T> => {
   return useUseCase(useCase, UseCaseModes.Global, options, deps);
 }) as GlobalUseCaseHook;

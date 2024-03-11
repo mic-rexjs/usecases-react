@@ -5,7 +5,7 @@ export const getRenderingEntity = <T>(
   statuses: UseCaseStatuses,
   entityState: T,
   rootEntity: T | EntityGetter<T>,
-  contextEntity: T
+  contextEntity: T,
 ): T => {
   if ((statuses & UseCaseStatuses.EntityRootEnabled) !== UseCaseStatuses.EntityRootEnabled) {
     return contextEntity as T;
