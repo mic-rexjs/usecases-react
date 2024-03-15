@@ -1,12 +1,12 @@
 import { useLatest } from 'ahooks';
 import React, { FC, ReactElement, ReactNode, useMemo } from 'react';
-import { EntityStore, ReducerMap } from '@mic-rexjs/usecases';
+import { EntityStore, Reducers } from '@mic-rexjs/usecases';
 import { UseCaseContext, UseCaseContextValue } from '@/configs/defaultUseCaseContext/types';
 import { UseCaseProvider, UseCaseProviderProps } from './types';
 import { useConstantFn } from '../useConstantFn';
 import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 
-export const useProvider = <T, TReducers extends ReducerMap>(
+export const useProvider = <T, TReducers extends Reducers>(
   statuses: UseCaseStatuses,
   context: UseCaseContext<UseCaseContextValue<TReducers>>,
   store: EntityStore<T>,
@@ -21,10 +21,11 @@ export const useProvider = <T, TReducers extends ReducerMap>(
       return {
         store,
         reducers,
+        statuses,
       } as UseCaseContextValue<TReducers>;
     }
 
-    return { reducers };
+    return { reducers, statuses };
   }, [statuses, entity, store, reducers]);
 
   const contextValueRef = useLatest(contextValue);

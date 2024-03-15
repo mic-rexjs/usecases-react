@@ -1,4 +1,4 @@
-import { ReducerMap, UseCase } from '@mic-rexjs/usecases';
+import { Reducers, UseCase } from '@mic-rexjs/usecases';
 import { useConstant } from '../useConstant';
 import { UseCaseContextReference, UseCaseContextReferenceMap } from '@/configs/useCaseContextReferenceMap/types';
 import { usecaseContextReferenceMap } from '@/configs/useCaseContextReferenceMap';
@@ -6,17 +6,15 @@ import { createContext } from 'react';
 import { UseCaseContext, UseCaseContextValue } from '@/configs/defaultUseCaseContext/types';
 import { useUnmount } from 'ahooks';
 import { UseCaseArgumentTypes } from '@/enums/UseCaseArgumentTypes';
-import { UseCaseModes } from '@/enums/UseCaseModes';
 import { defaultUseCaseContext } from '@/configs/defaultUseCaseContext';
 
 export const useUseCaseContext = <
-  T extends ReducerMap,
+  T extends Reducers,
   TUseCaseOptions extends object,
   TContext extends UseCaseContext<UseCaseContextValue<T>>,
 >(
   usecase: UseCase<T, TUseCaseOptions>,
   argumentTypes = UseCaseArgumentTypes.None,
-  mode = UseCaseModes.Normal,
 ): TContext => {
   const map = usecaseContextReferenceMap as UseCaseContextReferenceMap<T, TUseCaseOptions>;
 
@@ -33,13 +31,8 @@ export const useUseCaseContext = <
       return value as TContext;
     }
 
-    switch (true) {
-      case (mode & UseCaseModes.Global) === UseCaseModes.Global:
-      case (argumentTypes & UseCaseArgumentTypes.Entity) === UseCaseArgumentTypes.Entity:
-        break;
-
-      default:
-        return defaultUseCaseContext as TContext;
+    if ((argumentTypes & UseCaseArgumentTypes.Entity) !== UseCaseArgumentTypes.Entity) {
+      return defaultUseCaseContext as TContext;
     }
 
     const ctx = createContext(null) as TContext;

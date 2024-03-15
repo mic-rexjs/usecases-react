@@ -23,7 +23,7 @@ export const useEntity = <
   const optionsRef = useLatest(options);
   const entityRootEnabled = (statuses & UseCaseStatuses.EntityRootEnabled) === UseCaseStatuses.EntityRootEnabled;
 
-  const store = useContextualItem(statuses, contextStore, (): EntityStore<T> => {
+  const store = useContextualItem(contextStore, statuses, (): EntityStore<T> => {
     if (!entityRootEnabled) {
       return new EntityStore(null as T);
     }

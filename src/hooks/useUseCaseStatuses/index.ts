@@ -2,26 +2,26 @@ import { EntityUseCaseContextValue, UseCaseContextValue } from '@/configs/defaul
 import { UseCaseArgumentTypes } from '@/enums/UseCaseArgumentTypes';
 import { UseCaseModes } from '@/enums/UseCaseModes';
 import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
-import { EntityReducerMap, ReducerMap } from '@mic-rexjs/usecases';
+import { EntityReducers, Reducers } from '@mic-rexjs/usecases';
 import { useCreation } from 'ahooks';
 
-export const useUseCaseStatuses = <T, TReducers extends ReducerMap>(
+export const useUseCaseStatuses = <T extends Reducers>(
   argumentTypes: UseCaseArgumentTypes,
   mode: UseCaseModes,
-  contextValue: UseCaseContextValue<TReducers> | null,
+  contextValue: UseCaseContextValue<T> | null,
 ): UseCaseStatuses => {
   return useCreation((): UseCaseStatuses => {
     let statuses = UseCaseStatuses.None;
-    const { store } = (contextValue || {}) as Partial<EntityUseCaseContextValue<T, TReducers & EntityReducerMap<T>>>;
+    const { store } = (contextValue || {}) as Partial<EntityUseCaseContextValue<T, EntityReducers<T>>>;
 
     if ((argumentTypes & UseCaseArgumentTypes.Entity) === UseCaseArgumentTypes.Entity) {
       statuses |= UseCaseStatuses.EntityRootEnabled;
     }
 
-    if (contextValue === null) {
-      statuses |= UseCaseStatuses.RootEnabled;
-    } else {
+    if (contextValue) {
       statuses |= UseCaseStatuses.ContextEnabled;
+    } else {
+      statuses |= UseCaseStatuses.RootEnabled;
     }
 
     if (store) {

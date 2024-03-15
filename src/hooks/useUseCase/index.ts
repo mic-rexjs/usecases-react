@@ -1,7 +1,7 @@
 import { useCreation } from 'ahooks';
 import { useContext } from 'react';
-import { EntityReducerMap, EntityUseCase, ReducerMap, UseCase } from '@mic-rexjs/usecases';
-import { UseCaseHookOptions, UseCaseHook, CoreCollection, UseCaseHookParameters, PseudoCoreCollection } from './types';
+import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
+import { UseCaseHookOptions, UseCaseHook, CoreCollection, UseCaseHookParameters } from './types';
 import { useConstantFn } from '../useConstantFn';
 import { useProvider } from '../useProvider';
 import { ContextualEntityReducers, EntityUseCaseContextValue } from '@/configs/defaultUseCaseContext/types';
@@ -15,30 +15,28 @@ import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 import { useEntity } from '../useEntity';
 import { useContextualItem } from '../useContextualItem';
 import { cacheCalls } from '@/methods/cacheCalls';
-import { useSafeMode } from '../useSafeMode';
 
-export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions extends object>(
+export const useUseCase = (<T, TReducers extends Reducers, TUseCaseOptions extends object>(
   ...args: UseCaseHookParameters
-): TReducers | CoreCollection<T, EntityReducerMap<T>> | PseudoCoreCollection<TReducers> => {
+): TReducers | ContextualEntityReducers<T, EntityReducers<T>> | CoreCollection<T, EntityReducers<T>> => {
+  const isRenderingRef = useIsRenderingRef();
   const argumentTypes = useArgumentTypes(args);
   const fullArguments = fillArguments<T, TReducers, TUseCaseOptions>(args, argumentTypes);
-  const [unsafeEntity, unsafeUsecase, unsafeMode, options, deps] = fullArguments;
+  const [unsafeEntity, unsafeUsecase, mode, options, deps] = fullArguments;
   const unkownUsecase = useConstantFn(unsafeUsecase);
   const usecase = unkownUsecase as UseCase<TReducers, TUseCaseOptions>;
-  const entityUseCase = unkownUsecase as EntityUseCase<T, EntityReducerMap<T>, TUseCaseOptions>;
-  const isRenderingRef = useIsRenderingRef();
-  const mode = useSafeMode(unsafeMode, argumentTypes);
-  const context = useUseCaseContext(unkownUsecase, argumentTypes, mode);
+  const entityUseCase = unkownUsecase as EntityUseCase<T, EntityReducers<T>, TUseCaseOptions>;
+  const context = useUseCaseContext(unkownUsecase, argumentTypes);
   const contextValue = useContext(context);
-  const entityContextValue = contextValue as EntityUseCaseContextValue<T, EntityReducerMap<T>> | null;
+  const entityContextValue = contextValue as EntityUseCaseContextValue<T, EntityReducers<T>> | null;
   const statuses = useUseCaseStatuses(argumentTypes, mode, contextValue);
-  const { reducers: contextReducers = null } = contextValue || {};
+  const { reducers: contextReducers = null, statuses: contextStatueses = UseCaseStatuses.None } = contextValue || {};
   const { store: contextStore = null } = entityContextValue || {};
   const [entity, store] = useEntity(statuses, unsafeEntity, contextStore, options);
 
   const reducers = useContextualItem(
-    statuses,
     contextReducers,
+    statuses,
     (): TReducers => {
       if ((statuses & UseCaseStatuses.EntityEnabled) !== UseCaseStatuses.EntityEnabled) {
         return usecase(options as TUseCaseOptions);
@@ -46,25 +44,24 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
 
       const hookOptions = options as UseCaseHookOptions<T, TUseCaseOptions>;
 
-      return initEntityReducers(entityUseCase, store, hookOptions) as ReducerMap as TReducers;
+      return initEntityReducers(entityUseCase, store, hookOptions) as Reducers as TReducers;
     },
     deps,
   );
 
   const Provider = useProvider(statuses, context, store, reducers);
 
-  return useCreation((): TReducers | CoreCollection<T, EntityReducerMap<T>> | PseudoCoreCollection<TReducers> => {
-    if ((statuses & UseCaseStatuses.ContextEnabled) !== UseCaseStatuses.ContextEnabled) {
+  return useCreation(():
+    | TReducers
+    | ContextualEntityReducers<T, EntityReducers<T>>
+    | CoreCollection<T, EntityReducers<T>> => {
+    if ((statuses & UseCaseStatuses.EntityEnabled) !== UseCaseStatuses.EntityEnabled) {
       return reducers;
     }
 
     const rootEnabled = (statuses & UseCaseStatuses.RootEnabled) === UseCaseStatuses.RootEnabled;
 
-    if ((statuses & UseCaseStatuses.EntityEnabled) !== UseCaseStatuses.EntityEnabled) {
-      return rootEnabled ? [reducers, Provider] : reducers;
-    }
-
-    const cachedReducers = cacheCalls(reducers as ReducerMap as ContextualEntityReducers<T, EntityReducerMap<T>>, {
+    const cachedReducers = cacheCalls(reducers as Reducers as ContextualEntityReducers<T, EntityReducers<T>>, {
       onShouldCache(): boolean {
         return isRenderingRef.current;
       },
@@ -74,6 +71,10 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
       return [entity, cachedReducers, Provider];
     }
 
+    if ((contextStatueses & UseCaseStatuses.GlobalEnabled) === UseCaseStatuses.GlobalEnabled) {
+      return cachedReducers;
+    }
+
     return [entity, cachedReducers];
-  }, [statuses, entity, reducers, Provider, isRenderingRef]);
+  }, [statuses, contextStatueses, entity, reducers, Provider, isRenderingRef]);
 }) as UseCaseHook;

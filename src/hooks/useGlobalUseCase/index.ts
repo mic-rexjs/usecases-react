@@ -1,13 +1,14 @@
-import { Reducers, UseCase } from '@mic-rexjs/usecases';
-import { GlobalUseCaseHook } from './types';
+import { EntityReducers, EntityUseCase } from '@mic-rexjs/usecases';
 import { useUseCase } from '../useUseCase';
-import { PseudoCoreCollection } from '../useUseCase/types';
+import { EntityGetter, RootCoreCollection, UseCaseHookOptions } from '../useUseCase/types';
+import { GlobalUseCaseHook } from './types';
 import { UseCaseModes } from '@/enums/UseCaseModes';
 
-export const useGlobalUseCase = (<T extends Reducers, TUseCaseOptions extends object>(
-  useCase: UseCase<T, TUseCaseOptions>,
-  options?: TUseCaseOptions,
+export const useGlobalUseCase = (<T, TEntityReducers extends EntityReducers<T>, TUseCaseOptions extends object>(
+  entity: T | EntityGetter<T>,
+  useCase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
+  options?: UseCaseHookOptions<T, TUseCaseOptions>,
   deps?: unknown[],
-): PseudoCoreCollection<T> => {
-  return useUseCase(useCase, UseCaseModes.Global, options, deps);
+): RootCoreCollection<T, TEntityReducers> => {
+  return useUseCase(entity, useCase, UseCaseModes.Global, options, deps);
 }) as GlobalUseCaseHook;

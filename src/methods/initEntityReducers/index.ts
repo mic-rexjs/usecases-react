@@ -1,10 +1,10 @@
-import { EntityReducerMap, EntityStore, EntityUseCase, createEntityReducers } from '@mic-rexjs/usecases';
+import { EntityReducers, EntityStore, EntityUseCase, createEntityReducers } from '@mic-rexjs/usecases';
 import { UseCaseHookOptions } from '../../hooks/useUseCase/types';
 import { ContextualEntityReducers } from '@/configs/defaultUseCaseContext/types';
 
 export const initEntityReducers = <
   T,
-  TEntityReducers extends EntityReducerMap<T>,
+  TEntityReducers extends EntityReducers<T>,
   TUseCaseOptions extends object = object,
 >(
   usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,

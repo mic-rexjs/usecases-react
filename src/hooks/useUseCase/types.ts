@@ -1,27 +1,27 @@
-import { EntityReducerMap, EntityReducers, EntityUseCase, ReducerMap, Reducers, UseCase } from '@mic-rexjs/usecases';
+import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
 import { UseCaseProvider } from '../useProvider/types';
 import { UseCaseModes } from '@/enums/UseCaseModes';
 import { ContextualEntityReducers } from '@/configs/defaultUseCaseContext/types';
+import { GlobalReducers, GlobalUseCase, SymbolSet, SymbolSetTarget } from '@mic-rexjs/usecases/es/types';
 
-export type RootCoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = [
+export interface NonEntitySymbolSet extends SymbolSet {
+  entity?: never;
+}
+
+export type RootCoreCollection<T, TEntityReducers extends EntityReducers<T>> = [
   entity: T,
   reducers: ContextualEntityReducers<T, TEntityReducers>,
   Provider: UseCaseProvider,
 ];
 
-export type ContextualCoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = [
+export type ContextualCoreCollection<T, TEntityReducers extends EntityReducers<T>> = [
   entity: T,
   reducers: ContextualEntityReducers<T, TEntityReducers>,
 ];
 
-export type CoreCollection<T, TEntityReducers extends EntityReducerMap<T>> =
+export type CoreCollection<T, TEntityReducers extends EntityReducers<T>> =
   | RootCoreCollection<T, TEntityReducers>
   | ContextualCoreCollection<T, TEntityReducers>;
-
-export type PseudoCoreCollection<T extends ReducerMap, TProvider extends UseCaseProvider | null = UseCaseProvider> = [
-  reducers: T,
-  Provider: TProvider,
-];
 
 export interface EntityGetter<T> {
   (): T;
@@ -92,15 +92,23 @@ export interface UseCaseHookOwnOptions<T, TUseCaseOptions extends object> extend
 export type UseCaseHookOptions<T, TUseCaseOptions extends object = object> = TUseCaseOptions &
   UseCaseHookOwnOptions<T, TUseCaseOptions>;
 
+export interface ReducersHook {
+  <T extends Reducers, TUseCaseOptions extends object = object>(
+    usecase: UseCase<T & SymbolSetTarget<NonEntitySymbolSet>, TUseCaseOptions>,
+    options?: TUseCaseOptions,
+    deps?: unknown[],
+  ): T;
+}
+
+export interface ContextualReducersHook {
+  <T, TGlobalReducers extends GlobalReducers<T>>(
+    usecase: GlobalUseCase<T, TGlobalReducers> & UseCase<EntityReducers<T>>,
+  ): ContextualEntityReducers<T, TGlobalReducers>;
+}
+
 export interface ContextualCoreCollectionHook {
   <T, TEntityReducers extends EntityReducers<T>>(
-    usecase: EntityUseCase<T, TEntityReducers> &
-      /**
-       * 如果不使用 `&`，那么很多情况下 `options` 类型无法被正确推导；
-       * 因为使用 `&` 是为了让该参数 `usecase` 的泛型 `T` 推导占优先级，
-       * 从而保证 `options` 里的泛型 `T` 是根据 `usecase` 来推导的。
-       */
-      UseCase<EntityReducerMap<T>>,
+    usecase: EntityUseCase<T, TEntityReducers> & UseCase<EntityReducers<T>>,
     options?: UseCaseHookContextualOptions<T>,
   ): ContextualCoreCollection<T, TEntityReducers>;
 }
@@ -108,13 +116,7 @@ export interface ContextualCoreCollectionHook {
 export interface RootCoreCollectionHook {
   <T, TEntityReducers extends EntityReducers<T>, TUseCaseOptions extends object = object>(
     entity: T | EntityGetter<T>,
-    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> &
-      /**
-       * 如果不使用 `&`，那么很多情况下 `options` 类型无法被正确推导；
-       * 因为使用 `&` 是为了让该参数 `usecase` 的泛型 `T` 推导占优先级，
-       * 从而保证 `options` 里的泛型 `T` 是根据 `usecase` 来推导的。
-       */
-      UseCase<EntityReducerMap<T>, TUseCaseOptions>,
+    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> & UseCase<EntityReducers<T>, TUseCaseOptions>,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
     deps?: unknown[],
   ): RootCoreCollection<T, TEntityReducers>;
@@ -123,41 +125,12 @@ export interface RootCoreCollectionHook {
 export interface ModeCoreCollectionHook {
   <T, TEntityReducers extends EntityReducers<T>, TUseCaseOptions extends object = object>(
     entity: T | EntityGetter<T>,
-    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> &
-      /**
-       * 如果不使用 `&`，那么很多情况下 `options` 类型无法被正确推导；
-       * 因为使用 `&` 是为了让该参数 `usecase` 的泛型 `T` 推导占优先级，
-       * 从而保证 `options` 里的泛型 `T` 是根据 `usecase` 来推导的。
-       */
-      UseCase<EntityReducerMap<T>, TUseCaseOptions>,
+    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> & UseCase<EntityReducers<T>, TUseCaseOptions>,
     // 不能用可选，不然无法准确识别参数
-    /**
-     * currently, only support `UseCaseModes.Stateless`
-     */
     mode: UseCaseModes,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
     deps?: unknown[],
   ): RootCoreCollection<T, TEntityReducers>;
-}
-
-export interface PseudoCoreCollectionHook {
-  <T extends Reducers, TUseCaseOptions extends object = object>(
-    usecase: UseCase<T, TUseCaseOptions>,
-    /**
-     * currently, only support `UseCaseModes.Global`
-     */
-    mode: UseCaseModes,
-    options?: TUseCaseOptions,
-    deps?: unknown[],
-  ): PseudoCoreCollection<T>;
-}
-
-export interface ReducersHook {
-  <T extends Reducers, TUseCaseOptions extends object = object>(
-    usecase: UseCase<T, TUseCaseOptions>,
-    options?: TUseCaseOptions,
-    deps?: unknown[],
-  ): T;
 }
 
 export interface CoreCollectionHook
@@ -166,10 +139,11 @@ export interface CoreCollectionHook
     ModeCoreCollectionHook {}
 
 export type UseCaseHookParameters =
+  | Parameters<ReducersHook>
+  | Parameters<ContextualReducersHook>
   | Parameters<ContextualCoreCollectionHook>
   | Parameters<RootCoreCollectionHook>
-  | Parameters<ModeCoreCollectionHook>
-  | Parameters<PseudoCoreCollectionHook>
-  | Parameters<ReducersHook>;
+  | Parameters<ModeCoreCollectionHook>;
 
-export interface UseCaseHook extends CoreCollectionHook, PseudoCoreCollectionHook, ReducersHook {}
+// 需按顺序排列
+export interface UseCaseHook extends ReducersHook, ContextualReducersHook, CoreCollectionHook {}

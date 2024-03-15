@@ -1,4 +1,4 @@
-import { ReducerMap, UseCase } from '@mic-rexjs/usecases';
+import { Reducers, UseCase } from '@mic-rexjs/usecases';
 import { UseCaseContext, UseCaseContextValue } from '../defaultUseCaseContext/types';
 
 export interface UseCaseContextReference<T> {
@@ -8,9 +8,9 @@ export interface UseCaseContextReference<T> {
 }
 
 export interface UseCaseContextReferenceMap<
-  T extends ReducerMap,
+  T extends Reducers,
   TUseCaseOptions extends object,
   TContextValue extends UseCaseContextValue<T> = UseCaseContextValue<T>,
   TKey extends UseCase<T, TUseCaseOptions> = UseCase<T, TUseCaseOptions>,
-  TValue extends UseCaseContextReference<TContextValue> = UseCaseContextReference<TContextValue>
+  TValue extends UseCaseContextReference<TContextValue> = UseCaseContextReference<TContextValue>,
 > extends Map<TKey, TValue> {}

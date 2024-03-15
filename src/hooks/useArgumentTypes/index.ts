@@ -10,13 +10,10 @@ export const useArgumentTypes = (args: UseCaseHookParameters): UseCaseArgumentTy
 
     if (type2 === 'function') {
       types |= UseCaseArgumentTypes.Entity;
-    }
 
-    switch ('number') {
-      case type2:
-      case typeof arg3:
+      if (typeof arg3 === 'number') {
         types |= UseCaseArgumentTypes.Mode;
-        break;
+      }
     }
 
     return types;

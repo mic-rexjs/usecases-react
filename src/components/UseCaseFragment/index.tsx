@@ -1,9 +1,9 @@
 import { Fragment } from 'react';
 import { UseCaseFragmentProps } from './types';
 import { useUseCase } from '../../hooks/useUseCase';
-import { EntityReducerMap } from '@mic-rexjs/usecases';
+import { EntityReducers } from '@mic-rexjs/usecases';
 
-export const UseCaseFragment = <T, TEntityReducers extends EntityReducerMap<T>>({
+export const UseCaseFragment = <T, TEntityReducers extends EntityReducers<T>>({
   usecase,
   watch,
   onChange,

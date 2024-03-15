@@ -1,10 +1,12 @@
+import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 import {
   AsyncEntityGenerator,
   EntityGenerator,
   EntityReducer,
-  EntityReducerMap,
+  EntityReducers,
   EntityStore,
-  ReducerMap,
+  ReducerKeys,
+  Reducers,
 } from '@mic-rexjs/usecases';
 
 export interface ChangeCallback<T> {
@@ -21,19 +23,21 @@ export type ContextualEntityReducer<T, TEntityReducer extends EntityReducer<T>> 
     ) => TReturn extends AsyncEntityGenerator<TEntity, infer TResult>
       ? Promise<TResult>
       : TReturn extends EntityGenerator<TEntity, infer TResult>
-      ? TResult
-      : TReturn
+        ? TResult
+        : TReturn
   : never;
 
-export type ContextualEntityReducers<T, TEntityReducers extends EntityReducerMap<T>> = {
-  [K in keyof TEntityReducers]: ContextualEntityReducer<T, TEntityReducers[K]>;
+export type ContextualEntityReducers<T, TEntityReducers extends EntityReducers<T>> = {
+  [K in ReducerKeys<TEntityReducers>]: ContextualEntityReducer<T, TEntityReducers[K]>;
 };
 
-export interface UseCaseContextValue<T extends ReducerMap> {
+export interface UseCaseContextValue<T extends Reducers> {
   reducers: T;
+
+  statuses: UseCaseStatuses;
 }
 
-export interface EntityUseCaseContextValue<T, TEntityReducers extends EntityReducerMap<T>>
+export interface EntityUseCaseContextValue<T, TEntityReducers extends EntityReducers<T>>
   extends UseCaseContextValue<ContextualEntityReducers<T, TEntityReducers>> {
   store: EntityStore<T>;
 }

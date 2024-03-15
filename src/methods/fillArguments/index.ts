@@ -1,10 +1,10 @@
 import { UseCaseModes } from '@/enums/UseCaseModes';
 import { UseCaseHookOptions, UseCaseHookParameters } from '@/hooks/useUseCase/types';
-import { EntityReducerMap, EntityUseCase, ReducerMap, UseCase } from '@mic-rexjs/usecases';
+import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
 import { UseCaseHookFullParameters } from './types';
 import { UseCaseArgumentTypes } from '@/enums/UseCaseArgumentTypes';
 
-export const fillArguments = <T, TReducers extends ReducerMap, TUseCaseOptions extends object>(
+export const fillArguments = <T, TReducers extends Reducers, TUseCaseOptions extends object>(
   args: UseCaseHookParameters,
   argumentTypes: UseCaseArgumentTypes,
 ): UseCaseHookFullParameters<T, TReducers, TUseCaseOptions> => {
@@ -16,7 +16,7 @@ export const fillArguments = <T, TReducers extends ReducerMap, TUseCaseOptions e
     if (hasMode) {
       return [
         arg1 as T,
-        arg2 as EntityUseCase<T, TReducers & EntityReducerMap<T>>,
+        arg2 as EntityUseCase<T, TReducers & EntityReducers<T>>,
         arg3 as UseCaseModes,
         (arg4 || {}) as UseCaseHookOptions<T, TUseCaseOptions>,
         arg5 || [],
@@ -25,19 +25,9 @@ export const fillArguments = <T, TReducers extends ReducerMap, TUseCaseOptions e
 
     return [
       arg1 as T,
-      arg2 as EntityUseCase<T, TReducers & EntityReducerMap<T>>,
+      arg2 as EntityUseCase<T, TReducers & EntityReducers<T>>,
       UseCaseModes.Normal,
       (arg3 || {}) as UseCaseHookOptions<T, TUseCaseOptions>,
-      (arg4 || []) as unknown[],
-    ];
-  }
-
-  if (hasMode) {
-    return [
-      null as T,
-      arg1 as UseCase<TReducers>,
-      arg2 as UseCaseModes,
-      (arg3 || {}) as TUseCaseOptions,
       (arg4 || []) as unknown[],
     ];
   }
