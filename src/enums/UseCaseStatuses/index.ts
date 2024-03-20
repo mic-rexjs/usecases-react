@@ -18,7 +18,4 @@ export enum UseCaseStatuses {
 
   // 是否不需要 `entity` 状态管理
   StatelessEnabled = EntityEnabled | (0b10 ** 6),
-
-  // 是否为全局模式
-  GlobalEnabled = ContextRootEnabled | (0b10 ** 7),
 }

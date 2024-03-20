@@ -1557,10 +1557,10 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@mic-rexjs/usecases@^2.5.2":
-  version "2.5.2"
-  resolved "https://registry.yarnpkg.com/@mic-rexjs/usecases/-/usecases-2.5.2.tgz#214c62ee898412ff51280bfe200044b3fde093bf"
-  integrity sha512-AKkGA4yiSzuAdCWg3DqOf9ltcTWoTsgN1Pgp03B9lV6ATPjVeX+G4ls+bGzJ0S+PtYMuOd2xq8J6ENq2joyc8Q==
+"@mic-rexjs/usecases@^2.6.0":
+  version "2.6.0"
+  resolved "https://registry.yarnpkg.com/@mic-rexjs/usecases/-/usecases-2.6.0.tgz#9161efcaaa165f09dda0d44170d0af63d4ce2aa6"
+  integrity sha512-AGboekaGXJp5dC2QzDFtAr5XiTRbw9rfEbyndrbBENy0iYaoV4bIpz66MEQ5CfjPxG+af7/yr5zU7k6B06L6Zg==
   dependencies:
     "@babel/plugin-transform-runtime" "^7.22.7"
     "@babel/preset-env" "^7.22.7"

@@ -1,6 +1,5 @@
 export { UseCaseFragment } from './components/UseCaseFragment';
 export { useUseCase } from './hooks/useUseCase';
-export { useGlobalUseCase } from './hooks/useGlobalUseCase';
 export { useStatelessUseCase } from './hooks/useStatelessUseCase';
 
 export type { RootCoreCollection, ContextualCoreCollection, CoreCollection } from './hooks/useUseCase/types';

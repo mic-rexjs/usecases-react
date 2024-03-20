@@ -12,7 +12,7 @@ import { renderHook, act, render, fireEvent, screen } from '@testing-library/rea
 import { useUseCase } from '.';
 import { useDeepCompareEffect, useMemoizedFn, useMount, useUpdate, useUpdateEffect } from 'ahooks';
 import { Dispatch, Fragment, useEffect, useRef, useState } from 'react';
-import { ContextualCoreCollection, EntityWatchEvent, RootCoreCollection } from './types';
+import { EntityWatchEvent, RootCoreCollection } from './types';
 import { UseCaseModes } from '@/enums/UseCaseModes';
 
 interface TestFile {
@@ -1543,19 +1543,16 @@ describe('useUseCase', (): void => {
   });
 
   describe('`useUseCase` should work the same as `ModeCoreCollectionHook`', (): void => {
-    test.each([UseCaseModes.Normal, UseCaseModes.Global, UseCaseModes.Stateless, UseCaseModes.StatelessGlobal])(
-      'check context type',
-      (mode: UseCaseModes): void => {
-        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-          return useUseCase(defaultFile, fileUseCase, mode);
-        });
+    test.each([UseCaseModes.Normal, UseCaseModes.Stateless])('check context type', (mode: UseCaseModes): void => {
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, fileUseCase, mode);
+      });
 
-        const { current: cores } = result;
+      const { current: cores } = result;
 
-        expect(Array.isArray(cores)).toBe(true);
-        expect(cores).toHaveLength(3);
-      },
-    );
+      expect(Array.isArray(cores)).toBe(true);
+      expect(cores).toHaveLength(3);
+    });
 
     test('stateless mode should not generate new reducers when `yeild entity`', (): void => {
       const onUpdate = jest.fn();
@@ -1646,7 +1643,7 @@ describe('useUseCase', (): void => {
       },
     );
 
-    test.each([UseCaseModes.Stateless, UseCaseModes.StatelessGlobal])(
+    test.each([UseCaseModes.Stateless])(
       '[mode=%s]: stateless mode should not trigger Parent & Child to update',
       (): void => {
         const onParentUpdate = jest.fn();
@@ -1978,42 +1975,6 @@ describe('useUseCase', (): void => {
       expect(onChangeA).toHaveReturnedWith(2);
       expect(onChangeB).toHaveReturnedWith(1);
       expect(onChangeC).toHaveReturnedWith(3);
-    });
-  });
-
-  describe('`useUseCase` should work the same as `ContextualReducersHook`', (): void => {
-    test('the return value should be `ContextualEntityReducers`', (): void => {
-      const { result: rootResult } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-        return useUseCase(
-          {
-            ...defaultFile,
-            path: PATH_2,
-            ext: EXT_1,
-          },
-          fileUseCase,
-          UseCaseModes.Global,
-        );
-      });
-
-      const [, , Provider] = rootResult.current;
-
-      const { result: contextualResult } = renderHook(
-        (): ContextualCoreCollection<TestFile, TestReducers<TestFile>> => {
-          return useUseCase(fileUseCase);
-        },
-        {
-          wrapper: Provider,
-        },
-      );
-
-      const { current } = contextualResult;
-
-      expect(Array.isArray(current)).toBe(false);
-      expect(typeof current).toBe('object');
-
-      const { isImage } = current as unknown as Record<'isImage', () => boolean>;
-
-      expect(isImage()).toBe(true);
     });
   });
 

@@ -30,7 +30,7 @@ export const useUseCase = (<T, TReducers extends Reducers, TUseCaseOptions exten
   const contextValue = useContext(context);
   const entityContextValue = contextValue as EntityUseCaseContextValue<T, EntityReducers<T>> | null;
   const statuses = useUseCaseStatuses(argumentTypes, mode, contextValue);
-  const { reducers: contextReducers = null, statuses: contextStatueses = UseCaseStatuses.None } = contextValue || {};
+  const { reducers: contextReducers = null } = contextValue || {};
   const { store: contextStore = null } = entityContextValue || {};
   const [entity, store] = useEntity(statuses, unsafeEntity, contextStore, options);
 
@@ -71,10 +71,6 @@ export const useUseCase = (<T, TReducers extends Reducers, TUseCaseOptions exten
       return [entity, cachedReducers, Provider];
     }
 
-    if ((contextStatueses & UseCaseStatuses.GlobalEnabled) === UseCaseStatuses.GlobalEnabled) {
-      return cachedReducers;
-    }
-
     return [entity, cachedReducers];
-  }, [statuses, contextStatueses, entity, reducers, Provider, isRenderingRef]);
+  }, [statuses, entity, reducers, Provider, isRenderingRef]);
 }) as UseCaseHook;

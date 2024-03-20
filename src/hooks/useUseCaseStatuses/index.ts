@@ -32,10 +32,6 @@ export const useUseCaseStatuses = <T extends Reducers>(
       statuses |= UseCaseStatuses.StatelessEnabled;
     }
 
-    if ((mode & UseCaseModes.Global) === UseCaseModes.Global) {
-      statuses |= UseCaseStatuses.GlobalEnabled;
-    }
-
     return statuses;
   }, [argumentTypes, contextValue, mode]);
 };
