@@ -692,6 +692,84 @@ describe('useUseCase', (): void => {
       expect(onChange).toHaveBeenLastCalledWith({ ...defaultFile, path: PATH_1, ext: EXT_1 }, defaultFile);
     });
 
+    test('`options.onChange` should be updated after `deps` changed', (): void => {
+      const onChange1 = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
+      const onChange2 = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
+      let onChange = onChange1;
+      let deps = [1];
+
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, fileUseCase, { onChange }, deps);
+      });
+
+      const { current: cores } = result;
+      const [, reducers] = cores;
+      const { setPath } = reducers;
+
+      expect(onChange1).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        setPath(PATH_1);
+
+        deps = [2];
+        onChange = onChange2;
+      });
+
+      expect(onChange2).toHaveBeenCalledTimes(0);
+      expect(onChange1).toHaveBeenCalledTimes(1);
+      expect(onChange1).toHaveBeenLastCalledWith({ ...defaultFile, path: PATH_1, ext: EXT_1 }, defaultFile);
+
+      act((): void => {
+        setPath(PATH_2);
+      });
+
+      expect(onChange1).toHaveBeenCalledTimes(1);
+      expect(onChange2).toHaveBeenCalledTimes(1);
+
+      expect(onChange2).toHaveBeenLastCalledWith(
+        { ...defaultFile, path: PATH_2, ext: EXT_2 },
+        { ...defaultFile, path: PATH_1, ext: EXT_1 },
+      );
+    });
+
+    test('`options.onChange` should not be updated if `deps` has not changed', (): void => {
+      const onChange1 = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
+      const onChange2 = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
+      let onChange = onChange1;
+
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, fileUseCase, { onChange }, []);
+      });
+
+      const { current: cores } = result;
+      const [, reducers] = cores;
+      const { setPath } = reducers;
+
+      expect(onChange1).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        setPath(PATH_1);
+
+        onChange = onChange2;
+      });
+
+      expect(onChange2).toHaveBeenCalledTimes(0);
+      expect(onChange1).toHaveBeenCalledTimes(1);
+      expect(onChange1).toHaveBeenLastCalledWith({ ...defaultFile, path: PATH_1, ext: EXT_1 }, defaultFile);
+
+      act((): void => {
+        setPath(PATH_2);
+      });
+
+      expect(onChange2).toHaveBeenCalledTimes(0);
+      expect(onChange1).toHaveBeenCalledTimes(2);
+
+      expect(onChange1).toHaveBeenLastCalledWith(
+        { ...defaultFile, path: PATH_2, ext: EXT_2 },
+        { ...defaultFile, path: PATH_1, ext: EXT_1 },
+      );
+    });
+
     test('`options.options` should override rest options', (): void => {
       const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
         return useUseCase(defaultFile, fileUseCase, {
@@ -777,55 +855,6 @@ describe('useUseCase', (): void => {
       });
     });
 
-    test('watcher should be updated after `entity` change', (): void => {
-      const onPathChange1 = jest.fn();
-      const onPathChange2 = jest.fn();
-      let onPathChange = onPathChange1;
-
-      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-        return useUseCase(defaultFile, fileUseCase, {
-          watch: {
-            path: onPathChange,
-          },
-        });
-      });
-
-      const { current: cores } = result;
-      const [, { setPath, setEntity }] = cores;
-
-      onPathChange = onPathChange2;
-      expect(onPathChange1).toHaveBeenCalledTimes(0);
-
-      act((): void => {
-        setPath(PATH_1);
-        setEntity({ size: 5000 });
-      });
-
-      expect(onPathChange1).toHaveBeenCalledTimes(1);
-
-      expect(onPathChange1).toHaveBeenLastCalledWith({
-        fieldPaths: ['path'],
-        newEntity: { ...defaultFile, path: PATH_1, ext: EXT_1 },
-        oldEntity: defaultFile,
-        newValue: PATH_1,
-        oldValue: '',
-      });
-
-      act((): void => {
-        setPath('');
-      });
-
-      expect(onPathChange2).toHaveBeenCalledTimes(1);
-
-      expect(onPathChange2).toHaveBeenLastCalledWith({
-        fieldPaths: ['path'],
-        newEntity: { ...defaultFile, size: 5000 },
-        oldEntity: { ...defaultFile, path: PATH_1, size: 5000, ext: EXT_1 },
-        newValue: '',
-        oldValue: PATH_1,
-      });
-    });
-
     test('when `deps` has changed, it should trigger update', (): void => {
       const onUpdate = jest.fn();
       const onDeepUpdate = jest.fn();
@@ -886,144 +915,118 @@ describe('useUseCase', (): void => {
       expect(onDeepUpdate).toHaveBeenCalledTimes(0);
     });
 
-    test('`options.watch` should be trigger at child elements', (): void => {
-      const onFirstExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
-      const onSecondExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
-      const onParentExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+    test('`options.watch` should be updated after `deps` changed', (): void => {
+      const onPathChange1 = jest.fn();
+      const onPathChange2 = jest.fn();
+      let onPathChange = onPathChange1;
+      let deps = [1];
 
-      let onExtChange = onFirstExtChange;
-      const firstButtonText = 'first button';
-      const secondButtonText = 'second button';
-
-      const A = (): React.ReactElement => {
-        useUseCase(fileUseCase, {
-          watch: {
-            ext: onExtChange,
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(
+          defaultFile,
+          fileUseCase,
+          {
+            watch: {
+              path: onPathChange,
+            },
           },
-        });
-
-        return <Fragment />;
-      };
-
-      const B = (): React.ReactElement => {
-        const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, {
-          watch: {
-            ext: onParentExtChange,
-          },
-        });
-
-        const onFirstClick = (): void => {
-          setPath(PATH_1);
-          onExtChange = onSecondExtChange;
-        };
-
-        const onSecondClick = (): void => {
-          setPath('');
-        };
-
-        return (
-          <Provider>
-            <A />
-            <button onClick={onFirstClick}>{firstButtonText}</button>
-            <button onClick={onSecondClick}>{secondButtonText}</button>
-          </Provider>
+          deps,
         );
-      };
+      });
 
-      render(<B />);
+      const { current: cores } = result;
+      const [, { setPath, setEntity }] = cores;
 
-      expect(onFirstExtChange).toHaveBeenCalledTimes(0);
-      fireEvent.click(screen.getByText(firstButtonText));
-      expect(onFirstExtChange).toHaveBeenCalledTimes(1);
+      expect(onPathChange1).toHaveBeenCalledTimes(0);
 
-      expect(onFirstExtChange).toHaveBeenLastCalledWith({
-        fieldPaths: ['ext'],
-        newEntity: { ...defaultFile, ext: EXT_1, path: PATH_1 },
+      act((): void => {
+        setPath(PATH_1);
+        setEntity({ size: 5000 });
+
+        deps = [2];
+        onPathChange = onPathChange2;
+      });
+
+      expect(onPathChange1).toHaveBeenCalledTimes(1);
+
+      expect(onPathChange1).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, path: PATH_1, ext: EXT_1 },
         oldEntity: defaultFile,
-        newValue: EXT_1,
+        newValue: PATH_1,
         oldValue: '',
       });
 
-      expect(onParentExtChange).toHaveBeenCalledTimes(1);
-
-      expect(onSecondExtChange).toHaveBeenCalledTimes(0);
-      fireEvent.click(screen.getByText(secondButtonText));
-      expect(onSecondExtChange).toHaveBeenCalledTimes(1);
-
-      expect(onSecondExtChange).toHaveBeenLastCalledWith({
-        fieldPaths: ['ext'],
-        newEntity: defaultFile,
-        oldEntity: { ...defaultFile, ext: EXT_1, path: PATH_1 },
-        newValue: '',
-        oldValue: EXT_1,
+      act((): void => {
+        setPath('');
       });
 
-      expect(onFirstExtChange).toHaveBeenCalledTimes(1);
-      expect(onParentExtChange).toHaveBeenCalledTimes(2);
+      expect(onPathChange1).toHaveBeenCalledTimes(1);
+      expect(onPathChange2).toHaveBeenCalledTimes(1);
+
+      expect(onPathChange2).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, size: 5000 },
+        oldEntity: { ...defaultFile, path: PATH_1, ext: EXT_1, size: 5000 },
+        newValue: '',
+        oldValue: PATH_1,
+      });
     });
 
-    test('`options.watch` should be trigger in orders', (): void => {
-      let changeTimes = 0;
+    test('`options.watch` should not be updated if `deps` has not changed', (): void => {
+      const onPathChange1 = jest.fn();
+      const onPathChange2 = jest.fn();
+      let onPathChange = onPathChange1;
 
-      const updateChangeTimes = (e: EntityWatchEvent<TestFile, string>): number => {
-        void e;
-        return ++changeTimes;
-      };
-
-      const onChangeA = jest.fn(updateChangeTimes);
-      const onChangeB = jest.fn(updateChangeTimes);
-      const onChangeC = jest.fn(updateChangeTimes);
-
-      const buttonText = 'my button';
-
-      const A = ({ children }: React.PropsWithChildren): React.ReactElement => {
-        useUseCase(fileUseCase, {
-          watch: {
-            ext: onChangeA,
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(
+          defaultFile,
+          fileUseCase,
+          {
+            watch: {
+              path: onPathChange,
+            },
           },
-        });
-
-        return <Fragment>{children}</Fragment>;
-      };
-
-      const B = (): React.ReactElement => {
-        useUseCase(fileUseCase, {
-          watch: {
-            ext: onChangeB,
-          },
-        });
-
-        return <Fragment />;
-      };
-
-      const C = (): React.ReactElement => {
-        const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, {
-          watch: {
-            ext: onChangeC,
-          },
-        });
-
-        const onFirstClick = (): void => {
-          setPath(PATH_1);
-        };
-
-        return (
-          <Provider>
-            <A>
-              <B />
-            </A>
-            <button onClick={onFirstClick}>{buttonText}</button>
-          </Provider>
+          [],
         );
-      };
+      });
 
-      render(<C />);
+      const { current: cores } = result;
+      const [, { setPath, setEntity }] = cores;
 
-      expect(changeTimes).toBe(0);
-      fireEvent.click(screen.getByText(buttonText));
-      expect(onChangeA).toHaveReturnedWith(2);
-      expect(onChangeB).toHaveReturnedWith(1);
-      expect(onChangeC).toHaveReturnedWith(3);
+      expect(onPathChange1).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        setPath(PATH_1);
+        setEntity({ size: 5000 });
+
+        onPathChange = onPathChange2;
+      });
+
+      expect(onPathChange1).toHaveBeenCalledTimes(1);
+
+      expect(onPathChange1).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, path: PATH_1, ext: EXT_1 },
+        oldEntity: defaultFile,
+        newValue: PATH_1,
+        oldValue: '',
+      });
+
+      act((): void => {
+        setPath('');
+      });
+
+      expect(onPathChange2).toHaveBeenCalledTimes(0);
+      expect(onPathChange1).toHaveBeenCalledTimes(2);
+
+      expect(onPathChange1).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, size: 5000 },
+        oldEntity: { ...defaultFile, path: PATH_1, ext: EXT_1, size: 5000 },
+        newValue: '',
+        oldValue: PATH_1,
+      });
     });
 
     test('`options.watch` should work with array field path of array', (): void => {
@@ -1543,16 +1546,19 @@ describe('useUseCase', (): void => {
   });
 
   describe('`useUseCase` should work the same as `ModeCoreCollectionHook`', (): void => {
-    test.each([UseCaseModes.Normal, UseCaseModes.Stateless])('check context type', (mode: UseCaseModes): void => {
-      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-        return useUseCase(defaultFile, fileUseCase, mode);
-      });
+    test.each([UseCaseModes.Normal, UseCaseModes.Stateless])(
+      '[mode=%s]: check context type',
+      (mode: UseCaseModes): void => {
+        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+          return useUseCase(defaultFile, fileUseCase, mode);
+        });
 
-      const { current: cores } = result;
+        const { current: cores } = result;
 
-      expect(Array.isArray(cores)).toBe(true);
-      expect(cores).toHaveLength(3);
-    });
+        expect(Array.isArray(cores)).toBe(true);
+        expect(cores).toHaveLength(3);
+      },
+    );
 
     test('stateless mode should not generate new reducers when `yeild entity`', (): void => {
       const onUpdate = jest.fn();
@@ -1867,62 +1873,154 @@ describe('useUseCase', (): void => {
       expect(addReducer).toHaveBeenCalledTimes(3);
     });
 
-    test('`options.onChange` event should be trigger at child elements', (): void => {
-      const onFirstChange = jest.fn();
-      const onSecondChange = jest.fn();
-      const onParentPathChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
-      const firstButtonText = 'first button';
-      const secondButtonText = 'second button';
-      let onChange = onFirstChange;
+    test.each([UseCaseModes.Normal, UseCaseModes.Stateless])(
+      '[mode=%s]: `options.watch` should be updated in child element after `deps` changed',
+      (mode: UseCaseModes): void => {
+        const onFirstExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+        const onSecondExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
 
-      const A = (): React.ReactElement => {
-        useUseCase(fileUseCase, { onChange });
+        let onExtChange = onFirstExtChange;
+        let deps = [1];
+        const firstButtonText = 'first button';
+        const secondButtonText = 'second button';
 
-        return <Fragment />;
-      };
+        const A = (): React.ReactElement => {
+          useUseCase(
+            fileUseCase,
+            {
+              watch: {
+                ext: onExtChange,
+              },
+            },
+            deps,
+          );
 
-      const B = (): React.ReactElement => {
-        const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, {
-          onChange: onParentPathChange,
+          return <Fragment />;
+        };
+
+        const B = (): React.ReactElement => {
+          const [file, setFile] = useState(defaultFile);
+
+          const [, { setPath }, Provider] = useUseCase(file, fileUseCase, mode, {
+            onChange(newFile: TestFile): void {
+              if ((mode & UseCaseModes.Stateless) !== UseCaseModes.Stateless) {
+                return;
+              }
+
+              // `stateless` 不会保存状态，所以需要手动保存
+              setFile(newFile);
+            },
+          });
+
+          const onFirstClick = (): void => {
+            setPath(PATH_1);
+
+            deps = [2];
+            onExtChange = onSecondExtChange;
+          };
+
+          const onSecondClick = (): void => {
+            setPath('');
+          };
+
+          return (
+            <Provider>
+              <A />
+              <button onClick={onFirstClick}>{firstButtonText}</button>
+              <button onClick={onSecondClick}>{secondButtonText}</button>
+            </Provider>
+          );
+        };
+
+        render(<B />);
+
+        expect(onFirstExtChange).toHaveBeenCalledTimes(0);
+
+        fireEvent.click(screen.getByText(firstButtonText));
+        expect(onFirstExtChange).toHaveBeenCalledTimes(1);
+        expect(onSecondExtChange).toHaveBeenCalledTimes(0);
+
+        fireEvent.click(screen.getByText(secondButtonText));
+        expect(onFirstExtChange).toHaveBeenCalledTimes(1);
+        expect(onSecondExtChange).toHaveBeenCalledTimes(1);
+
+        expect(onSecondExtChange).toHaveBeenLastCalledWith({
+          fieldPaths: ['ext'],
+          newEntity: defaultFile,
+          oldEntity: { ...defaultFile, ext: EXT_1, path: PATH_1 },
+          newValue: '',
+          oldValue: EXT_1,
         });
+      },
+    );
 
-        const onFirstClick = (): void => {
-          setPath(PATH_1);
-          onChange = onSecondChange;
+    test.each([UseCaseModes.Normal, UseCaseModes.Stateless])(
+      '`options.watch` should not be updated in child element if `deps` has not changed',
+      (mode: UseCaseModes): void => {
+        const onFirstExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+        const onSecondExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+
+        let onExtChange = onFirstExtChange;
+        const firstButtonText = 'first button';
+        const secondButtonText = 'second button';
+
+        const A = (): React.ReactElement => {
+          useUseCase(
+            fileUseCase,
+            {
+              watch: {
+                ext: onExtChange,
+              },
+            },
+            [],
+          );
+
+          return <Fragment />;
         };
 
-        const onSecondClick = (): void => {
-          setPath('');
+        const B = (): React.ReactElement => {
+          const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, mode);
+
+          const onFirstClick = (): void => {
+            setPath(PATH_1);
+
+            onExtChange = onSecondExtChange;
+          };
+
+          const onSecondClick = (): void => {
+            setPath('');
+          };
+
+          return (
+            <Provider>
+              <A />
+              <button onClick={onFirstClick}>{firstButtonText}</button>
+              <button onClick={onSecondClick}>{secondButtonText}</button>
+            </Provider>
+          );
         };
 
-        return (
-          <Provider>
-            <A />
-            <button onClick={onFirstClick}>{firstButtonText}</button>
-            <button onClick={onSecondClick}>{secondButtonText}</button>
-          </Provider>
-        );
-      };
+        render(<B />);
 
-      render(<B />);
+        expect(onFirstExtChange).toHaveBeenCalledTimes(0);
 
-      expect(onFirstChange).toHaveBeenCalledTimes(0);
-      fireEvent.click(screen.getByText(firstButtonText));
-      expect(onFirstChange).toHaveBeenCalledTimes(1);
-      expect(onFirstChange).toHaveBeenLastCalledWith({ ...defaultFile, ext: EXT_1, path: PATH_1 }, defaultFile);
-      expect(onParentPathChange).toHaveBeenCalledTimes(1);
+        fireEvent.click(screen.getByText(firstButtonText));
+        expect(onFirstExtChange).toHaveBeenCalledTimes(1);
+        expect(onSecondExtChange).toHaveBeenCalledTimes(0);
 
-      expect(onSecondChange).toHaveBeenCalledTimes(0);
-      fireEvent.click(screen.getByText(secondButtonText));
-      expect(onSecondChange).toHaveBeenCalledTimes(1);
-      expect(onSecondChange).toHaveBeenLastCalledWith(defaultFile, {
-        ...defaultFile,
-        ext: EXT_1,
-        path: PATH_1,
-      });
-      expect(onFirstChange).toHaveBeenCalledTimes(1);
-      expect(onParentPathChange).toHaveBeenCalledTimes(2);
-    });
+        fireEvent.click(screen.getByText(secondButtonText));
+        expect(onFirstExtChange).toHaveBeenCalledTimes(2);
+        expect(onSecondExtChange).toHaveBeenCalledTimes(0);
+
+        expect(onFirstExtChange).toHaveBeenLastCalledWith({
+          fieldPaths: ['ext'],
+          newEntity: defaultFile,
+          oldEntity: { ...defaultFile, ext: EXT_1, path: PATH_1 },
+          newValue: '',
+          oldValue: EXT_1,
+        });
+      },
+    );
 
     test('`options.onChange` event should be trigger in orders', (): void => {
       let changeTimes = 0;
@@ -1952,6 +2050,115 @@ describe('useUseCase', (): void => {
       const C = (): React.ReactElement => {
         const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, {
           onChange: onChangeC,
+        });
+
+        const onFirstClick = (): void => {
+          setPath(PATH_1);
+        };
+
+        return (
+          <Provider>
+            <A>
+              <B />
+            </A>
+            <button onClick={onFirstClick}>{buttonText}</button>
+          </Provider>
+        );
+      };
+
+      render(<C />);
+
+      expect(changeTimes).toBe(0);
+      fireEvent.click(screen.getByText(buttonText));
+      expect(onChangeA).toHaveReturnedWith(2);
+      expect(onChangeB).toHaveReturnedWith(1);
+      expect(onChangeC).toHaveReturnedWith(3);
+    });
+
+    test('`options.watch` should be trigger at child elements', (): void => {
+      const onExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+      const firstButtonText = 'first button';
+
+      const A = (): React.ReactElement => {
+        useUseCase(fileUseCase, {
+          watch: {
+            ext: onExtChange,
+          },
+        });
+
+        return <Fragment />;
+      };
+
+      const B = (): React.ReactElement => {
+        const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, {});
+
+        const onFirstClick = (): void => {
+          setPath(PATH_1);
+        };
+
+        return (
+          <Provider>
+            <A />
+            <button onClick={onFirstClick}>{firstButtonText}</button>
+          </Provider>
+        );
+      };
+
+      render(<B />);
+
+      expect(onExtChange).toHaveBeenCalledTimes(0);
+
+      fireEvent.click(screen.getByText(firstButtonText));
+      expect(onExtChange).toHaveBeenCalledTimes(1);
+
+      expect(onExtChange).toHaveBeenLastCalledWith({
+        fieldPaths: ['ext'],
+        newEntity: { ...defaultFile, ext: EXT_1, path: PATH_1 },
+        oldEntity: defaultFile,
+        newValue: EXT_1,
+        oldValue: '',
+      });
+    });
+
+    test('`options.watch` should be trigger in orders', (): void => {
+      let changeTimes = 0;
+
+      const updateChangeTimes = (e: EntityWatchEvent<TestFile, string>): number => {
+        void e;
+        return ++changeTimes;
+      };
+
+      const onChangeA = jest.fn(updateChangeTimes);
+      const onChangeB = jest.fn(updateChangeTimes);
+      const onChangeC = jest.fn(updateChangeTimes);
+
+      const buttonText = 'my button';
+
+      const A = ({ children }: React.PropsWithChildren): React.ReactElement => {
+        useUseCase(fileUseCase, {
+          watch: {
+            ext: onChangeA,
+          },
+        });
+
+        return <Fragment>{children}</Fragment>;
+      };
+
+      const B = (): React.ReactElement => {
+        useUseCase(fileUseCase, {
+          watch: {
+            ext: onChangeB,
+          },
+        });
+
+        return <Fragment />;
+      };
+
+      const C = (): React.ReactElement => {
+        const [, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, {
+          watch: {
+            ext: onChangeC,
+          },
         });
 
         const onFirstClick = (): void => {

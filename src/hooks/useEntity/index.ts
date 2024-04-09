@@ -4,7 +4,7 @@ import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 import { getRenderingEntity } from '@/methods/getRenderingEntity';
 import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
 import { useContextualItem } from '../useContextualItem';
-import { useCreation, useLatest } from 'ahooks';
+import { useCreation, useMemoizedFn } from 'ahooks';
 import { triggerWatchers } from '@/methods/triggerWatchers';
 
 export const useEntity = <
@@ -16,11 +16,12 @@ export const useEntity = <
   rootEntity: T | EntityGetter<T>,
   contextStore: EntityStore<T> | null,
   options: TOptions,
+  depsKey: number,
 ): [entity: T, store: EntityStore<T>] => {
   const [entityState, setEntityState] = useState(rootEntity);
   const contextEntity = (contextStore ? contextStore.value : null) as T;
   const renderingEntity = getRenderingEntity(statuses, entityState, rootEntity, contextEntity);
-  const optionsRef = useLatest(options);
+  const entityEnabled = (statuses & UseCaseStatuses.EntityEnabled) === UseCaseStatuses.EntityEnabled;
   const entityRootEnabled = (statuses & UseCaseStatuses.EntityRootEnabled) === UseCaseStatuses.EntityRootEnabled;
 
   const store = useContextualItem(contextStore, statuses, (): EntityStore<T> => {
@@ -41,19 +42,10 @@ export const useEntity = <
     });
   });
 
-  if (entityRootEnabled) {
-    // 执行同步操作
-    store.value = renderingEntity;
-  }
-
-  useEffect((): void | VoidFunction => {
-    if ((statuses & UseCaseStatuses.EntityEnabled) !== UseCaseStatuses.EntityEnabled) {
-      return;
-    }
+  const rewatch = useMemoizedFn((): VoidFunction => {
+    const { onChange, watch } = options;
 
     const onEntityChange = (newEntity: T, oldEntity: T): void => {
-      const { onChange, watch } = optionsRef.current;
-
       if (watch) {
         triggerWatchers(watch, newEntity, oldEntity);
       }
@@ -66,7 +58,20 @@ export const useEntity = <
     return (): void => {
       store.unwatch(onEntityChange);
     };
-  }, [statuses, store, optionsRef]);
+  });
+
+  if (entityRootEnabled) {
+    // 执行同步操作
+    store.value = renderingEntity;
+  }
+
+  useEffect((): void | VoidFunction => {
+    if (!entityEnabled) {
+      return;
+    }
+
+    return rewatch();
+  }, [entityEnabled, store, depsKey, rewatch]);
 
   return useCreation((): [entity: T, store: EntityStore<T>] => {
     return [renderingEntity, store];

@@ -15,6 +15,7 @@ import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 import { useEntity } from '../useEntity';
 import { useContextualItem } from '../useContextualItem';
 import { cacheCalls } from '@/methods/cacheCalls';
+import { useCompareDeps } from '../useCompareDeps';
 
 export const useUseCase = (<T, TReducers extends Reducers, TUseCaseOptions extends object>(
   ...args: UseCaseHookParameters
@@ -30,9 +31,10 @@ export const useUseCase = (<T, TReducers extends Reducers, TUseCaseOptions exten
   const contextValue = useContext(context);
   const entityContextValue = contextValue as EntityUseCaseContextValue<T, EntityReducers<T>> | null;
   const statuses = useUseCaseStatuses(argumentTypes, mode, contextValue);
+  const depsKey = useCompareDeps(deps);
   const { reducers: contextReducers = null } = contextValue || {};
   const { store: contextStore = null } = entityContextValue || {};
-  const [entity, store] = useEntity(statuses, unsafeEntity, contextStore, options);
+  const [entity, store] = useEntity(statuses, unsafeEntity, contextStore, options, depsKey);
 
   const reducers = useContextualItem(
     contextReducers,
@@ -46,7 +48,7 @@ export const useUseCase = (<T, TReducers extends Reducers, TUseCaseOptions exten
 
       return initEntityReducers(entityUseCase, store, hookOptions) as Reducers as TReducers;
     },
-    deps,
+    depsKey,
   );
 
   const Provider = useProvider(statuses, context, store, reducers);

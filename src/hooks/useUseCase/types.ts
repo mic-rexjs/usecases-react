@@ -104,6 +104,7 @@ export interface ContextualCoreCollectionHook {
   <T, TEntityReducers extends EntityReducers<T>>(
     usecase: EntityUseCase<T, TEntityReducers> & UseCase<EntityReducers<T>>,
     options?: UseCaseHookContextualOptions<T>,
+    deps?: unknown[],
   ): ContextualCoreCollection<T, TEntityReducers>;
 }
 
