@@ -5,6 +5,7 @@ import { getRenderingEntity } from '@/methods/getRenderingEntity';
 import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
 import { useContextualItem } from '../useContextualItem';
 import { useCreation, useLatest } from 'ahooks';
+import { triggerWatchers } from '@/methods/triggerWatchers';
 
 export const useEntity = <
   T,
@@ -18,11 +19,11 @@ export const useEntity = <
   depsKey: number,
 ): [entity: T, store: EntityStore<T>] => {
   const [entityState, setEntityState] = useState(rootEntity);
-  const optionsRef = useLatest(options);
   const contextEntity = (contextStore ? contextStore.value : null) as T;
   const renderingEntity = getRenderingEntity(statuses, entityState, rootEntity, contextEntity);
   const entityEnabled = (statuses & UseCaseStatuses.EntityEnabled) === UseCaseStatuses.EntityEnabled;
   const entityRootEnabled = (statuses & UseCaseStatuses.EntityRootEnabled) === UseCaseStatuses.EntityRootEnabled;
+  const optionsRef = useLatest(options);
 
   const store = useContextualItem(contextStore, statuses, (): EntityStore<T> => {
     if (!entityRootEnabled) {
@@ -53,7 +54,11 @@ export const useEntity = <
     }
 
     const onEntityChange = (newEntity: T, oldEntity: T): void => {
-      const { onChange } = optionsRef.current;
+      const { onChange, watch } = optionsRef.current;
+
+      if (watch) {
+        triggerWatchers(watch, newEntity, oldEntity);
+      }
 
       onChange?.(newEntity, oldEntity);
     };
