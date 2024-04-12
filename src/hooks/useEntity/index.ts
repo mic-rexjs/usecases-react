@@ -4,8 +4,7 @@ import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 import { getRenderingEntity } from '@/methods/getRenderingEntity';
 import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
 import { useContextualItem } from '../useContextualItem';
-import { useCreation, useMemoizedFn } from 'ahooks';
-import { triggerWatchers } from '@/methods/triggerWatchers';
+import { useCreation, useLatest } from 'ahooks';
 
 export const useEntity = <
   T,
@@ -19,6 +18,7 @@ export const useEntity = <
   depsKey: number,
 ): [entity: T, store: EntityStore<T>] => {
   const [entityState, setEntityState] = useState(rootEntity);
+  const optionsRef = useLatest(options);
   const contextEntity = (contextStore ? contextStore.value : null) as T;
   const renderingEntity = getRenderingEntity(statuses, entityState, rootEntity, contextEntity);
   const entityEnabled = (statuses & UseCaseStatuses.EntityEnabled) === UseCaseStatuses.EntityEnabled;
@@ -42,24 +42,6 @@ export const useEntity = <
     });
   });
 
-  const rewatch = useMemoizedFn((): VoidFunction => {
-    const { onChange, watch } = options;
-
-    const onEntityChange = (newEntity: T, oldEntity: T): void => {
-      if (watch) {
-        triggerWatchers(watch, newEntity, oldEntity);
-      }
-
-      onChange?.(newEntity, oldEntity);
-    };
-
-    store.watch(onEntityChange);
-
-    return (): void => {
-      store.unwatch(onEntityChange);
-    };
-  });
-
   if (entityRootEnabled) {
     // 执行同步操作
     store.value = renderingEntity;
@@ -70,8 +52,18 @@ export const useEntity = <
       return;
     }
 
-    return rewatch();
-  }, [entityEnabled, store, depsKey, rewatch]);
+    const onEntityChange = (newEntity: T, oldEntity: T): void => {
+      const { onChange } = optionsRef.current;
+
+      onChange?.(newEntity, oldEntity);
+    };
+
+    store.watch(onEntityChange);
+
+    return (): void => {
+      store.unwatch(onEntityChange);
+    };
+  }, [entityEnabled, store, depsKey, optionsRef]);
 
   return useCreation((): [entity: T, store: EntityStore<T>] => {
     return [renderingEntity, store];

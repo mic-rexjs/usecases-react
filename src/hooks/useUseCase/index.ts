@@ -1,4 +1,4 @@
-import { useCreation } from 'ahooks';
+import { useCreation, useLatest } from 'ahooks';
 import { useContext } from 'react';
 import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
 import { UseCaseHookOptions, UseCaseHook, CoreCollection, UseCaseHookParameters } from './types';
@@ -16,6 +16,8 @@ import { useEntity } from '../useEntity';
 import { useContextualItem } from '../useContextualItem';
 import { cacheCalls } from '@/methods/cacheCalls';
 import { useCompareDeps } from '../useCompareDeps';
+import { captureCalls } from '@/methods/captureCalls';
+import { RestArguments } from '@mic-rexjs/usecases/es/types';
 
 export const useUseCase = (<T, TReducers extends Reducers, TUseCaseOptions extends object>(
   ...args: UseCaseHookParameters
@@ -31,6 +33,7 @@ export const useUseCase = (<T, TReducers extends Reducers, TUseCaseOptions exten
   const contextValue = useContext(context);
   const entityContextValue = contextValue as EntityUseCaseContextValue<T, EntityReducers<T>> | null;
   const statuses = useUseCaseStatuses(argumentTypes, mode, contextValue);
+  const optionsRef = useLatest(options);
   const depsKey = useCompareDeps(deps);
   const { reducers: contextReducers = null } = contextValue || {};
   const { store: contextStore = null } = entityContextValue || {};
@@ -40,11 +43,15 @@ export const useUseCase = (<T, TReducers extends Reducers, TUseCaseOptions exten
     contextReducers,
     statuses,
     (): TReducers => {
+      const opts = captureCalls(options, <TReturn>(key: string, callArgs: RestArguments): TReturn => {
+        return (optionsRef.current as Record<string, (...args: RestArguments) => TReturn>)[key]?.(...callArgs);
+      });
+
       if ((statuses & UseCaseStatuses.EntityEnabled) !== UseCaseStatuses.EntityEnabled) {
-        return usecase(options as TUseCaseOptions);
+        return usecase(opts as TUseCaseOptions);
       }
 
-      const hookOptions = options as UseCaseHookOptions<T, TUseCaseOptions>;
+      const hookOptions = opts as UseCaseHookOptions<T, TUseCaseOptions>;
 
       return initEntityReducers(entityUseCase, store, hookOptions) as Reducers as TReducers;
     },

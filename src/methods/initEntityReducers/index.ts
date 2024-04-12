@@ -11,7 +11,7 @@ export const initEntityReducers = <
   store: EntityStore<T>,
   options: UseCaseHookOptions<T, TUseCaseOptions>,
 ): ContextualEntityReducers<T, TEntityReducers> => {
-  const { watch, onChange, options: usecaseOptions, ...restUseCaseOptions } = options;
+  const { onChange, options: usecaseOptions, ...restUseCaseOptions } = options;
 
   return createEntityReducers(
     store,

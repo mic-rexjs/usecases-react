@@ -27,22 +27,6 @@ export interface EntityGetter<T> {
   (): T;
 }
 
-export interface EntityWatchEvent<T, TValue = unknown> {
-  fieldPaths: string[];
-
-  newEntity: T;
-
-  newValue: TValue;
-
-  oldEntity: T;
-
-  oldValue: TValue;
-}
-
-export interface EntityWatcher<T, TValue = unknown> {
-  (event: EntityWatchEvent<T, TValue>): void;
-}
-
 export type PropertyPath<T, K extends keyof T = keyof T & string> = K extends infer TKey
   ? `${TKey & (string | number)}${'' | DotAccessorFieldPath<T[TKey & keyof T]>}`
   : never;
@@ -75,13 +59,7 @@ export type ExtractFieldType<T, TPath> = TPath extends `${infer TKey}.${infer TS
   ? ExtractPropertyType<T[TKey & keyof T], TSubProperty>
   : T[TPath & keyof T];
 
-export type EntityWatchMap<T> = {
-  [K in FieldPath<T>]?: EntityWatcher<T, ExtractFieldType<T, K>>;
-};
-
 export interface UseCaseHookContextualOptions<T> {
-  watch?: EntityWatchMap<T>;
-
   onChange?(newEntity: T, oldEntity: T): void;
 }
 
