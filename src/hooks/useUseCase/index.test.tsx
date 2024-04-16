@@ -96,6 +96,7 @@ const PATH_1 = `hello${EXT_1}`;
 const PATH_2 = `hello${EXT_2}`;
 const PARENT_BUTTON_TEXT = 'parent button';
 const CHILD_BUTTON_TEXT = 'child button';
+const allModes = [UseCaseModes.Normal, UseCaseModes.StateControllable, UseCaseModes.Stateless];
 
 const defaultFile: TestFile = {
   path: '',
@@ -1483,19 +1484,63 @@ describe('useUseCase', (): void => {
   });
 
   describe('`useUseCase` should work the same as `ModeCoreCollectionHook`', (): void => {
-    test.each([UseCaseModes.Normal, UseCaseModes.Stateless])(
-      '[mode=%s]: check context type',
-      (mode: UseCaseModes): void => {
-        const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-          return useUseCase(defaultFile, fileUseCase, mode);
-        });
+    test.each(allModes)('[mode=%s]: check context type', (mode: UseCaseModes): void => {
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, fileUseCase, mode);
+      });
 
-        const { current: cores } = result;
+      const { current: collection } = result;
 
-        expect(Array.isArray(cores)).toBe(true);
-        expect(cores).toHaveLength(3);
-      },
-    );
+      expect(Array.isArray(collection)).toBe(true);
+      expect(collection).toHaveLength(3);
+    });
+
+    test('state controllable mode should return the entity state if initial entity has not changed', (): void => {
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, fileUseCase, UseCaseModes.StateControllable);
+      });
+
+      const { current: collection } = result;
+
+      const [, { setPath }] = collection;
+
+      act((): void => {
+        setPath(PATH_1);
+      });
+
+      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_1, ext: EXT_1 });
+    });
+
+    test('state controllable mode should return the initial entity if initial entity has changed', (): void => {
+      let file = defaultFile;
+
+      const { result, rerender } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(file, fileUseCase, UseCaseModes.StateControllable);
+      });
+
+      file = { ...defaultFile, path: PATH_1 };
+
+      rerender();
+      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_1 });
+    });
+
+    test('state controllable mode should return the initial entity if initial entity has changed even with entity state changed', (): void => {
+      let file = defaultFile;
+
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(file, fileUseCase, UseCaseModes.StateControllable);
+      });
+
+      const { current: collection } = result;
+      const [, { setPath }] = collection;
+
+      act((): void => {
+        file = { ...defaultFile, path: PATH_2 };
+        setPath(PATH_1);
+      });
+
+      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_2 });
+    });
 
     test('stateless mode should not generate new reducers when `yeild entity`', (): void => {
       const onUpdate = jest.fn();
@@ -1863,7 +1908,7 @@ describe('useUseCase', (): void => {
       expect(onChangeC).toHaveReturnedWith(3);
     });
 
-    test.each([UseCaseModes.Normal, UseCaseModes.Stateless])(
+    test.each(allModes)(
       '[mode=%s]: `options.onChange` should always trigger the latest one in child components',
       (mode: UseCaseModes): void => {
         const onFirstChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
@@ -1901,7 +1946,7 @@ describe('useUseCase', (): void => {
 
           const [, , Provider] = useUseCase(file, fileUseCase, mode, {
             onChange(newFile: TestFile): void {
-              if ((mode & UseCaseModes.Stateless) !== UseCaseModes.Stateless) {
+              if (mode !== UseCaseModes.Stateless) {
                 return;
               }
 
@@ -2041,7 +2086,7 @@ describe('useUseCase', (): void => {
       expect(onChangeC).toHaveReturnedWith(3);
     });
 
-    test.each([UseCaseModes.Normal, UseCaseModes.Stateless])(
+    test.each(allModes)(
       '[mode=%s]: `options.watch` should trigger the latest one in child components',
       (mode: UseCaseModes): void => {
         const onFirstExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
@@ -2080,7 +2125,7 @@ describe('useUseCase', (): void => {
 
           const [, , Provider] = useUseCase(file, fileUseCase, mode, {
             onChange(newFile: TestFile): void {
-              if ((mode & UseCaseModes.Stateless) !== UseCaseModes.Stateless) {
+              if (mode !== UseCaseModes.Stateless) {
                 return;
               }
 

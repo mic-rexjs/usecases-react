@@ -28,8 +28,14 @@ export const useUseCaseStatuses = <T extends Reducers>(
       statuses |= UseCaseStatuses.EntityEnabled;
     }
 
-    if ((mode & UseCaseModes.Stateless) === UseCaseModes.Stateless) {
-      statuses |= UseCaseStatuses.StatelessEnabled;
+    switch (mode) {
+      case UseCaseModes.StateControllable:
+        statuses |= UseCaseStatuses.StateControllableEnabled;
+        break;
+
+      case UseCaseModes.Stateless:
+        statuses |= UseCaseStatuses.StatelessEnabled;
+        break;
     }
 
     return statuses;

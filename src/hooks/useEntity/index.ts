@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { EntityStore } from '@mic-rexjs/usecases';
 import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
-import { getRenderingEntity } from '@/methods/getRenderingEntity';
 import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
 import { useContextualItem } from '../useContextualItem';
 import { useCreation, useLatest } from 'ahooks';
 import { triggerWatchers } from '@/methods/triggerWatchers';
+import { useRuntimeEntity } from '../useRuntimeEntity';
 
 export const useEntity = <
   T,
@@ -20,7 +20,7 @@ export const useEntity = <
 ): [entity: T, store: EntityStore<T>] => {
   const [entityState, setEntityState] = useState(rootEntity);
   const contextEntity = (contextStore ? contextStore.value : null) as T;
-  const renderingEntity = getRenderingEntity(statuses, entityState, rootEntity, contextEntity);
+  const runtimeEntity = useRuntimeEntity(statuses, entityState, rootEntity, contextEntity);
   const entityEnabled = (statuses & UseCaseStatuses.EntityEnabled) === UseCaseStatuses.EntityEnabled;
   const entityRootEnabled = (statuses & UseCaseStatuses.EntityRootEnabled) === UseCaseStatuses.EntityRootEnabled;
   const optionsRef = useLatest(options);
@@ -32,7 +32,7 @@ export const useEntity = <
 
     const stateless = (statuses & UseCaseStatuses.StatelessEnabled) === UseCaseStatuses.StatelessEnabled;
 
-    return new EntityStore(renderingEntity, {
+    return new EntityStore(runtimeEntity, {
       onChange(newEntity: T): void {
         if (stateless) {
           return;
@@ -45,7 +45,7 @@ export const useEntity = <
 
   if (entityRootEnabled) {
     // 执行同步操作
-    store.value = renderingEntity;
+    store.value = runtimeEntity;
   }
 
   useEffect((): void | VoidFunction => {
@@ -71,6 +71,6 @@ export const useEntity = <
   }, [entityEnabled, store, depsKey, optionsRef]);
 
   return useCreation((): [entity: T, store: EntityStore<T>] => {
-    return [renderingEntity, store];
-  }, [renderingEntity, store]);
+    return [runtimeEntity, store];
+  }, [runtimeEntity, store]);
 };

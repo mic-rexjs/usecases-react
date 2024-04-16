@@ -1,5 +1,7 @@
 export enum UseCaseModes {
-  Normal = 0b10,
+  Normal,
 
-  Stateless = 0b10 ** 2,
+  StateControllable,
+
+  Stateless,
 }

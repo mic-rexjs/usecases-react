@@ -16,6 +16,9 @@ export enum UseCaseStatuses {
   // 是否初始化与 `entity` 相关的 `reducers`
   EntityRootEnabled = EntityEnabled | ContextRootEnabled | (0b10 ** 5),
 
+  // 是否为 `entity` 状态可控
+  StateControllableEnabled = EntityEnabled | (0b10 ** 6),
+
   // 是否不需要 `entity` 状态管理
-  StatelessEnabled = EntityEnabled | (0b10 ** 6),
+  StatelessEnabled = EntityEnabled | (0b10 ** 7),
 }
