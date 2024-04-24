@@ -1,6 +1,5 @@
 import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
 import { UseCaseProvider } from '../useProvider/types';
-import { UseCaseModes } from '@/enums/UseCaseModes';
 import { ContextualEntityReducers } from '@/configs/defaultUseCaseContext/types';
 import { SymbolSet, SymbolSetTarget } from '@mic-rexjs/usecases/es/types';
 
@@ -117,27 +116,12 @@ export interface RootCoreCollectionHook {
   ): RootCoreCollection<T, TEntityReducers>;
 }
 
-export interface ModeCoreCollectionHook {
-  <T, TEntityReducers extends EntityReducers<T>, TUseCaseOptions extends object = object>(
-    entity: T | EntityGetter<T>,
-    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> & UseCase<EntityReducers<T>, TUseCaseOptions>,
-    // 不能用可选，不然无法准确识别参数
-    mode: UseCaseModes,
-    options?: UseCaseHookOptions<T, TUseCaseOptions>,
-    deps?: unknown[],
-  ): RootCoreCollection<T, TEntityReducers>;
-}
-
-export interface CoreCollectionHook
-  extends ContextualCoreCollectionHook,
-    RootCoreCollectionHook,
-    ModeCoreCollectionHook {}
+export interface CoreCollectionHook extends ContextualCoreCollectionHook, RootCoreCollectionHook {}
 
 export type UseCaseHookParameters =
   | Parameters<ReducersHook>
   | Parameters<ContextualCoreCollectionHook>
-  | Parameters<RootCoreCollectionHook>
-  | Parameters<ModeCoreCollectionHook>;
+  | Parameters<RootCoreCollectionHook>;
 
 // 需按顺序排列
 export interface UseCaseHook extends ReducersHook, CoreCollectionHook {}

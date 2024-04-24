@@ -30,14 +30,8 @@ export const useEntity = <
       return new EntityStore(null as T);
     }
 
-    const stateless = (statuses & UseCaseStatuses.StatelessEnabled) === UseCaseStatuses.StatelessEnabled;
-
     return new EntityStore(runtimeEntity, {
       onChange(newEntity: T): void {
-        if (stateless) {
-          return;
-        }
-
         setEntityState(newEntity);
       },
     });

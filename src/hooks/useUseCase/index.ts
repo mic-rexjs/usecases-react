@@ -25,14 +25,14 @@ export const useUseCase = (<T, TReducers extends Reducers, TUseCaseOptions exten
   const isRenderingRef = useIsRenderingRef();
   const argumentTypes = useArgumentTypes(args);
   const fullArguments = fillArguments<T, TReducers, TUseCaseOptions>(args, argumentTypes);
-  const [unsafeEntity, unsafeUsecase, mode, options, deps] = fullArguments;
+  const [unsafeEntity, unsafeUsecase, options, deps] = fullArguments;
   const unkownUsecase = useConstantFn(unsafeUsecase);
   const usecase = unkownUsecase as UseCase<TReducers, TUseCaseOptions>;
   const entityUseCase = unkownUsecase as EntityUseCase<T, EntityReducers<T>, TUseCaseOptions>;
   const context = useUseCaseContext(unkownUsecase, argumentTypes);
   const contextValue = useContext(context);
   const entityContextValue = contextValue as EntityUseCaseContextValue<T, EntityReducers<T>> | null;
-  const statuses = useUseCaseStatuses(argumentTypes, mode, contextValue);
+  const statuses = useUseCaseStatuses(argumentTypes, contextValue);
   const optionsRef = useLatest(options);
   const depsKey = useCompareDeps(deps);
   const { reducers: contextReducers = null } = contextValue || {};

@@ -13,7 +13,6 @@ import { useUseCase } from '.';
 import { useDeepCompareEffect, useMemoizedFn, useMount, useUpdate, useUpdateEffect } from 'ahooks';
 import { Dispatch, Fragment, useEffect, useRef, useState } from 'react';
 import { EntityWatchEvent, RootCoreCollection } from './types';
-import { UseCaseModes } from '@/enums/UseCaseModes';
 
 interface TestFieldPathData {
   list?: TestFile[];
@@ -62,6 +61,8 @@ type StringReducers = EntityReducers<
   }
 >;
 
+type FiledPathReducers<T extends TestFieldPathData> = EntityReducers<T, Record<never, never>>;
+
 interface CommonProps {
   onUpdate?(): void;
 
@@ -69,8 +70,6 @@ interface CommonProps {
 }
 
 interface ParentProps extends CommonProps {
-  mode?: UseCaseModes;
-
   onSetPath?(): string;
 
   children?: React.ReactNode;
@@ -96,7 +95,6 @@ const PATH_1 = `hello${EXT_1}`;
 const PATH_2 = `hello${EXT_2}`;
 const PARENT_BUTTON_TEXT = 'parent button';
 const CHILD_BUTTON_TEXT = 'child button';
-const allModes = [UseCaseModes.Normal, UseCaseModes.StateControllable, UseCaseModes.Stateless];
 
 const defaultFile: TestFile = {
   path: '',
@@ -166,7 +164,7 @@ const mathUseCase = (options: MathUseCaseOptions = {}): MathReducers => {
   return { add, subtraction: subtractionReducer };
 };
 
-const fieldPathUseCase = (): EntityReducers<TestFieldPathData> => {
+const fieldPathUseCase = <T extends TestFieldPathData>(): FiledPathReducers<T> => {
   return objectUseCase();
 };
 
@@ -212,8 +210,8 @@ const Child = ({ textPrefix = '', onUpdate, onPathChange, onUndefinedEntity }: C
   );
 };
 
-const Parent = ({ children, mode = UseCaseModes.Normal, onUpdate, onSetPath }: ParentProps): React.ReactElement => {
-  const [{ path, ext }, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase, mode);
+const Parent = ({ children, onUpdate, onSetPath }: ParentProps): React.ReactElement => {
+  const [{ path, ext }, { setPath }, Provider] = useUseCase(defaultFile, fileUseCase);
 
   const onClick = (): void => {
     setPath(onSetPath?.() || '');
@@ -306,6 +304,53 @@ describe('useUseCase', (): void => {
       const [entity] = cores;
 
       expect(entity).toBe(defaultFile);
+    });
+
+    test('Should return the entity state if initial entity has not changed', (): void => {
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(defaultFile, fileUseCase);
+      });
+
+      const { current: collection } = result;
+
+      const [, { setPath }] = collection;
+
+      act((): void => {
+        setPath(PATH_1);
+      });
+
+      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_1, ext: EXT_1 });
+    });
+
+    test('Should return the initial entity if initial entity has changed', (): void => {
+      let file = defaultFile;
+
+      const { result, rerender } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(file, fileUseCase);
+      });
+
+      file = { ...defaultFile, path: PATH_1 };
+
+      rerender();
+      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_1 });
+    });
+
+    test('Should return the initial entity if initial entity has changed even with entity state changed', (): void => {
+      let file = defaultFile;
+
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(file, fileUseCase);
+      });
+
+      const { current: collection } = result;
+      const [, { setPath }] = collection;
+
+      act((): void => {
+        file = { ...defaultFile, path: PATH_2 };
+        setPath(PATH_1);
+      });
+
+      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_2 });
     });
 
     test('`reducers` should be returned as an object', (): void => {
@@ -968,11 +1013,12 @@ describe('useUseCase', (): void => {
     });
 
     test('`options.watch` should work with array field path of array', (): void => {
+      const initialData: TestFieldPathData = {};
       const onExtChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, string>) => void>();
       const onSizeChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
 
-      const { result } = renderHook((): RootCoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
-        return useUseCase({} as TestFieldPathData, fieldPathUseCase, {
+      const { result } = renderHook((): RootCoreCollection<TestFieldPathData, FiledPathReducers<TestFieldPathData>> => {
+        return useUseCase(initialData, fieldPathUseCase, {
           watch: {
             'list.ext': onExtChange,
             'list.size': onSizeChange,
@@ -1263,10 +1309,11 @@ describe('useUseCase', (): void => {
     });
 
     test('`options.watch` should work with field path of nested array', (): void => {
+      const initialData: TestFieldPathData = {};
       const onChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
 
       const { result } = renderHook((): RootCoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
-        return useUseCase({} as TestFieldPathData, fieldPathUseCase, {
+        return useUseCase(initialData, fieldPathUseCase, {
           watch: {
             'nestedList.size': onChange,
           },
@@ -1364,11 +1411,12 @@ describe('useUseCase', (): void => {
     });
 
     test('`options.watch` should work with field path of object', (): void => {
+      const initialData: TestFieldPathData = {};
       const onExtChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, string | undefined>) => void>();
       const onSizeChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number | undefined>) => void>();
 
       const { result } = renderHook((): RootCoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
-        return useUseCase({} as TestFieldPathData, fieldPathUseCase, {
+        return useUseCase(initialData, fieldPathUseCase, {
           watch: {
             'obj.file.ext': onExtChange,
             'obj.file.size': onSizeChange,
@@ -1438,15 +1486,15 @@ describe('useUseCase', (): void => {
       const onBooleanMount = jest.fn();
 
       const numberUseCase = (): EntityReducers<number> => {
-        return objectUseCase();
+        return entityUseCase();
       };
 
       const stringUseCase = (): EntityReducers<string> => {
-        return objectUseCase();
+        return entityUseCase();
       };
 
       const booleanUseCase = (): EntityReducers<boolean> => {
-        return objectUseCase();
+        return entityUseCase();
       };
 
       const TestChildComponent = (): null => {
@@ -1483,183 +1531,38 @@ describe('useUseCase', (): void => {
     });
   });
 
-  describe('`useUseCase` should work the same as `ModeCoreCollectionHook`', (): void => {
-    test.each(allModes)('[mode=%s]: check context type', (mode: UseCaseModes): void => {
-      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-        return useUseCase(defaultFile, fileUseCase, mode);
+  describe('`useUseCase` should work the same as useContextualCoreCollection', (): void => {
+    test('Should trigger Parent & Child to update', (): void => {
+      const onParentUpdate = jest.fn();
+      const onChildUpdate = jest.fn();
+      const onPathChange = jest.fn();
+      const onUndefinedEntity = jest.fn();
+
+      const onSetPath = jest.fn((): string => {
+        return PATH_1;
       });
 
-      const { current: collection } = result;
-
-      expect(Array.isArray(collection)).toBe(true);
-      expect(collection).toHaveLength(3);
-    });
-
-    test('state controllable mode should return the entity state if initial entity has not changed', (): void => {
-      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-        return useUseCase(defaultFile, fileUseCase, UseCaseModes.StateControllable);
-      });
-
-      const { current: collection } = result;
-
-      const [, { setPath }] = collection;
-
-      act((): void => {
-        setPath(PATH_1);
-      });
-
-      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_1, ext: EXT_1 });
-    });
-
-    test('state controllable mode should return the initial entity if initial entity has changed', (): void => {
-      let file = defaultFile;
-
-      const { result, rerender } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-        return useUseCase(file, fileUseCase, UseCaseModes.StateControllable);
-      });
-
-      file = { ...defaultFile, path: PATH_1 };
-
-      rerender();
-      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_1 });
-    });
-
-    test('state controllable mode should return the initial entity if initial entity has changed even with entity state changed', (): void => {
-      let file = defaultFile;
-
-      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-        return useUseCase(file, fileUseCase, UseCaseModes.StateControllable);
-      });
-
-      const { current: collection } = result;
-      const [, { setPath }] = collection;
-
-      act((): void => {
-        file = { ...defaultFile, path: PATH_2 };
-        setPath(PATH_1);
-      });
-
-      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_2 });
-    });
-
-    test('stateless mode should not generate new reducers when `yeild entity`', (): void => {
-      const onUpdate = jest.fn();
-
-      const { result, rerender } = renderHook(
-        (file: TestFile = defaultFile): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-          useUpdateEffect((): void => {
-            onUpdate();
-          });
-
-          return useUseCase(file, fileUseCase, UseCaseModes.Stateless);
-        },
+      render(
+        <div>
+          <Parent onSetPath={onSetPath} onUpdate={onParentUpdate}>
+            <Child onUpdate={onChildUpdate} onPathChange={onPathChange} onUndefinedEntity={onUndefinedEntity} />
+          </Parent>
+        </div>,
       );
 
-      const { current: cores } = result;
-      const [, { setPath }] = cores;
+      fireEvent.click(screen.getByText(PARENT_BUTTON_TEXT));
+      expect(onSetPath).toHaveBeenCalledTimes(1);
+      expect(onParentUpdate).toHaveBeenCalledTimes(1);
+      expect(onChildUpdate).toHaveBeenCalledTimes(1);
+      expect(onPathChange).toHaveBeenCalledWith(PATH_1);
 
-      setPath(PATH_1);
-      expect(onUpdate).toHaveBeenCalledTimes(0);
-
-      expect(result.current[0].path).toBe('');
-      expect(result.current[1].setPath).toBe(setPath);
-
-      rerender({ ...defaultFile, path: PATH_1 });
-
-      expect(result.current[0].path).toBe(PATH_1);
-      expect(result.current[1].setPath).not.toBe(setPath);
+      fireEvent.click(screen.getByText(CHILD_BUTTON_TEXT));
+      expect(onSetPath).toHaveBeenCalledTimes(1);
+      expect(onParentUpdate).toHaveBeenCalledTimes(2);
+      expect(onChildUpdate).toHaveBeenCalledTimes(2);
+      expect(onPathChange).toHaveBeenCalledWith(PATH_2);
+      expect(onUndefinedEntity).toHaveBeenCalledTimes(0);
     });
-
-    test('stateless mode should not trigger update when after `yield entity`', (): void => {
-      const onUpdate = jest.fn();
-
-      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
-        useUpdateEffect((): void => {
-          onUpdate();
-        });
-
-        return useUseCase(defaultFile, fileUseCase, UseCaseModes.Stateless);
-      });
-
-      const { current: cores } = result;
-      const [, reducers] = cores;
-      const { setPath } = reducers;
-
-      act((): void => {
-        setPath(PATH_1);
-      });
-
-      expect(result.current).toBe(cores);
-      expect(result.current).toEqual(cores);
-      expect(onUpdate).toHaveBeenCalledTimes(0);
-    });
-  });
-
-  describe('`useUseCase` should work the same as useContextualCoreCollection', (): void => {
-    test.each([void 0, UseCaseModes.Normal])(
-      '[mode=%s]: normal mode should trigger Parent & Child to update',
-      (mode?: UseCaseModes): void => {
-        const onParentUpdate = jest.fn();
-        const onChildUpdate = jest.fn();
-        const onPathChange = jest.fn();
-        const onUndefinedEntity = jest.fn();
-
-        const onSetPath = jest.fn((): string => {
-          return PATH_1;
-        });
-
-        render(
-          <div>
-            <Parent mode={mode} onSetPath={onSetPath} onUpdate={onParentUpdate}>
-              <Child onUpdate={onChildUpdate} onPathChange={onPathChange} onUndefinedEntity={onUndefinedEntity} />
-            </Parent>
-          </div>,
-        );
-
-        fireEvent.click(screen.getByText(PARENT_BUTTON_TEXT));
-        expect(onSetPath).toHaveBeenCalledTimes(1);
-        expect(onParentUpdate).toHaveBeenCalledTimes(1);
-        expect(onChildUpdate).toHaveBeenCalledTimes(1);
-        expect(onPathChange).toHaveBeenCalledWith(PATH_1);
-
-        fireEvent.click(screen.getByText(CHILD_BUTTON_TEXT));
-        expect(onSetPath).toHaveBeenCalledTimes(1);
-        expect(onParentUpdate).toHaveBeenCalledTimes(2);
-        expect(onChildUpdate).toHaveBeenCalledTimes(2);
-        expect(onPathChange).toHaveBeenCalledWith(PATH_2);
-        expect(onUndefinedEntity).toHaveBeenCalledTimes(0);
-      },
-    );
-
-    test.each([UseCaseModes.Stateless])(
-      '[mode=%s]: stateless mode should not trigger Parent & Child to update',
-      (): void => {
-        const onParentUpdate = jest.fn();
-        const onChildUpdate = jest.fn();
-
-        const onSetPath = jest.fn((): string => {
-          return PATH_1;
-        });
-
-        render(
-          <div>
-            <Parent mode={UseCaseModes.Stateless} onSetPath={onSetPath} onUpdate={onParentUpdate}>
-              <Child onUpdate={onChildUpdate} />
-            </Parent>
-          </div>,
-        );
-
-        fireEvent.click(screen.getByText(PARENT_BUTTON_TEXT));
-        expect(onSetPath).toHaveBeenCalledTimes(1);
-        expect(onParentUpdate).toHaveBeenCalledTimes(0);
-        expect(onChildUpdate).toHaveBeenCalledTimes(0);
-
-        fireEvent.click(screen.getByText(CHILD_BUTTON_TEXT));
-        expect(onSetPath).toHaveBeenCalledTimes(1);
-        expect(onParentUpdate).toHaveBeenCalledTimes(0);
-        expect(onChildUpdate).toHaveBeenCalledTimes(0);
-      },
-    );
 
     test('`usecase` should not be called at child component', (): void => {
       const mockUseCase = jest.fn(fileUseCase);
@@ -1908,75 +1811,61 @@ describe('useUseCase', (): void => {
       expect(onChangeC).toHaveReturnedWith(3);
     });
 
-    test.each(allModes)(
-      '[mode=%s]: `options.onChange` should always trigger the latest one in child components',
-      (mode: UseCaseModes): void => {
-        const onFirstChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
-        const onSecondChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
+    test('`options.onChange` should always trigger the latest one in child components', (): void => {
+      const onFirstChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
+      const onSecondChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
 
-        let onChange = onFirstChange;
-        const firstButtonText = 'first button';
-        const secondButtonText = 'second button';
+      let onChange = onFirstChange;
+      const firstButtonText = 'first button';
+      const secondButtonText = 'second button';
 
-        const A = (): React.ReactElement => {
-          const [, { setPath }] = useUseCase(fileUseCase, {
-            onChange,
-          });
+      const A = (): React.ReactElement => {
+        const [, { setPath }] = useUseCase(fileUseCase, {
+          onChange,
+        });
 
-          const onFirstClick = (): void => {
-            setPath(PATH_1);
+        const onFirstClick = (): void => {
+          setPath(PATH_1);
 
-            onChange = onSecondChange;
-          };
-
-          const onSecondClick = (): void => {
-            setPath('');
-          };
-
-          return (
-            <Fragment>
-              <button onClick={onFirstClick}>{firstButtonText}</button>
-              <button onClick={onSecondClick}>{secondButtonText}</button>
-            </Fragment>
-          );
+          onChange = onSecondChange;
         };
 
-        const B = (): React.ReactElement => {
-          const [file, setFile] = useState(defaultFile);
-
-          const [, , Provider] = useUseCase(file, fileUseCase, mode, {
-            onChange(newFile: TestFile): void {
-              if (mode !== UseCaseModes.Stateless) {
-                return;
-              }
-
-              // `stateless` 不会保存状态，所以需要手动保存
-              setFile(newFile);
-            },
-          });
-
-          return (
-            <Provider>
-              <A />
-            </Provider>
-          );
+        const onSecondClick = (): void => {
+          setPath('');
         };
 
-        render(<B />);
+        return (
+          <Fragment>
+            <button onClick={onFirstClick}>{firstButtonText}</button>
+            <button onClick={onSecondClick}>{secondButtonText}</button>
+          </Fragment>
+        );
+      };
 
-        expect(onFirstChange).toHaveBeenCalledTimes(0);
+      const B = (): React.ReactElement => {
+        const [, , Provider] = useUseCase(defaultFile, fileUseCase);
 
-        fireEvent.click(screen.getByText(firstButtonText));
-        expect(onFirstChange).toHaveBeenCalledTimes(1);
-        expect(onSecondChange).toHaveBeenCalledTimes(0);
+        return (
+          <Provider>
+            <A />
+          </Provider>
+        );
+      };
 
-        fireEvent.click(screen.getByText(secondButtonText));
-        expect(onFirstChange).toHaveBeenCalledTimes(1);
-        expect(onSecondChange).toHaveBeenCalledTimes(1);
+      render(<B />);
 
-        expect(onSecondChange).toHaveBeenLastCalledWith(defaultFile, { ...defaultFile, ext: EXT_1, path: PATH_1 });
-      },
-    );
+      expect(onFirstChange).toHaveBeenCalledTimes(0);
+
+      fireEvent.click(screen.getByText(firstButtonText));
+      expect(onFirstChange).toHaveBeenCalledTimes(1);
+      expect(onSecondChange).toHaveBeenCalledTimes(0);
+
+      fireEvent.click(screen.getByText(secondButtonText));
+      expect(onFirstChange).toHaveBeenCalledTimes(1);
+      expect(onSecondChange).toHaveBeenCalledTimes(1);
+
+      expect(onSecondChange).toHaveBeenLastCalledWith(defaultFile, { ...defaultFile, ext: EXT_1, path: PATH_1 });
+    });
 
     test('`options.watch` should be trigger at child elements', (): void => {
       const onExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
@@ -2086,82 +1975,68 @@ describe('useUseCase', (): void => {
       expect(onChangeC).toHaveReturnedWith(3);
     });
 
-    test.each(allModes)(
-      '[mode=%s]: `options.watch` should trigger the latest one in child components',
-      (mode: UseCaseModes): void => {
-        const onFirstExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
-        const onSecondExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
-        let onExtChange = onFirstExtChange;
-        const firstButtonText = 'first button';
-        const secondButtonText = 'second button';
+    test('`options.watch` should trigger the latest one in child components', (): void => {
+      const onFirstExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+      const onSecondExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+      let onExtChange = onFirstExtChange;
+      const firstButtonText = 'first button';
+      const secondButtonText = 'second button';
 
-        const A = (): React.ReactElement => {
-          const [, { setPath }] = useUseCase(fileUseCase, {
-            watch: {
-              ext: onExtChange,
-            },
-          });
-
-          const onFirstClick = (): void => {
-            setPath(PATH_1);
-
-            onExtChange = onSecondExtChange;
-          };
-
-          const onSecondClick = (): void => {
-            setPath('');
-          };
-
-          return (
-            <Fragment>
-              <button onClick={onFirstClick}>{firstButtonText}</button>
-              <button onClick={onSecondClick}>{secondButtonText}</button>
-            </Fragment>
-          );
-        };
-
-        const B = (): React.ReactElement => {
-          const [file, setFile] = useState(defaultFile);
-
-          const [, , Provider] = useUseCase(file, fileUseCase, mode, {
-            onChange(newFile: TestFile): void {
-              if (mode !== UseCaseModes.Stateless) {
-                return;
-              }
-
-              // `stateless` 不会保存状态，所以需要手动保存
-              setFile(newFile);
-            },
-          });
-
-          return (
-            <Provider>
-              <A />
-            </Provider>
-          );
-        };
-
-        render(<B />);
-
-        expect(onFirstExtChange).toHaveBeenCalledTimes(0);
-
-        fireEvent.click(screen.getByText(firstButtonText));
-        expect(onFirstExtChange).toHaveBeenCalledTimes(1);
-        expect(onSecondExtChange).toHaveBeenCalledTimes(0);
-
-        fireEvent.click(screen.getByText(secondButtonText));
-        expect(onFirstExtChange).toHaveBeenCalledTimes(1);
-        expect(onSecondExtChange).toHaveBeenCalledTimes(1);
-
-        expect(onSecondExtChange).toHaveBeenLastCalledWith({
-          fieldPaths: ['ext'],
-          newEntity: defaultFile,
-          oldEntity: { ...defaultFile, ext: EXT_1, path: PATH_1 },
-          newValue: '',
-          oldValue: EXT_1,
+      const A = (): React.ReactElement => {
+        const [, { setPath }] = useUseCase(fileUseCase, {
+          watch: {
+            ext: onExtChange,
+          },
         });
-      },
-    );
+
+        const onFirstClick = (): void => {
+          setPath(PATH_1);
+
+          onExtChange = onSecondExtChange;
+        };
+
+        const onSecondClick = (): void => {
+          setPath('');
+        };
+
+        return (
+          <Fragment>
+            <button onClick={onFirstClick}>{firstButtonText}</button>
+            <button onClick={onSecondClick}>{secondButtonText}</button>
+          </Fragment>
+        );
+      };
+
+      const B = (): React.ReactElement => {
+        const [, , Provider] = useUseCase(defaultFile, fileUseCase);
+
+        return (
+          <Provider>
+            <A />
+          </Provider>
+        );
+      };
+
+      render(<B />);
+
+      expect(onFirstExtChange).toHaveBeenCalledTimes(0);
+
+      fireEvent.click(screen.getByText(firstButtonText));
+      expect(onFirstExtChange).toHaveBeenCalledTimes(1);
+      expect(onSecondExtChange).toHaveBeenCalledTimes(0);
+
+      fireEvent.click(screen.getByText(secondButtonText));
+      expect(onFirstExtChange).toHaveBeenCalledTimes(1);
+      expect(onSecondExtChange).toHaveBeenCalledTimes(1);
+
+      expect(onSecondExtChange).toHaveBeenLastCalledWith({
+        fieldPaths: ['ext'],
+        newEntity: defaultFile,
+        oldEntity: { ...defaultFile, ext: EXT_1, path: PATH_1 },
+        newValue: '',
+        oldValue: EXT_1,
+      });
+    });
   });
 
   describe('`useUseCase` should work the same as `useReducers`', (): void => {
