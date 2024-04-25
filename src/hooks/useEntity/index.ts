@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { EntityStore } from '@mic-rexjs/usecases';
 import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
 import { useContextualItem } from '../useContextualItem';
-import { useCreation, useLatest } from 'ahooks';
+import { useCreation, useLatest, useUpdate } from 'ahooks';
 import { triggerWatchers } from '@/methods/triggerWatchers';
 import { useRuntimeEntity } from '../useRuntimeEntity';
 
@@ -18,24 +18,27 @@ export const useEntity = <
   options: TOptions,
   depsKey: number,
 ): [entity: T, store: EntityStore<T>] => {
-  const [entityState, setEntityState] = useState(rootEntity);
+  const update = useUpdate();
+  const optionsRef = useLatest(options);
   const contextEntity = (contextStore ? contextStore.value : null) as T;
-  const runtimeEntity = useRuntimeEntity(statuses, entityState, rootEntity, contextEntity);
   const entityEnabled = (statuses & UseCaseStatuses.EntityEnabled) === UseCaseStatuses.EntityEnabled;
   const entityRootEnabled = (statuses & UseCaseStatuses.EntityRootEnabled) === UseCaseStatuses.EntityRootEnabled;
-  const optionsRef = useLatest(options);
 
   const store = useContextualItem(contextStore, statuses, (): EntityStore<T> => {
     if (!entityRootEnabled) {
       return new EntityStore(null as T);
     }
 
-    return new EntityStore(runtimeEntity, {
-      onChange(newEntity: T): void {
-        setEntityState(newEntity);
+    const isFunction = typeof rootEntity === 'function';
+
+    return new EntityStore(isFunction ? (rootEntity as EntityGetter<T>)() : rootEntity, {
+      onChange(): void {
+        update();
       },
     });
   });
+
+  const runtimeEntity = useRuntimeEntity(store, rootEntity, contextEntity, statuses);
 
   if (entityRootEnabled) {
     // 执行同步操作

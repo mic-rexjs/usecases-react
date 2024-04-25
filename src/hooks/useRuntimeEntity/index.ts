@@ -1,12 +1,13 @@
 import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
 import { EntityGetter } from '@/hooks/useUseCase/types';
+import { EntityStore } from '@mic-rexjs/usecases';
 import { useRef } from 'react';
 
 export const useRuntimeEntity = <T>(
-  statuses: UseCaseStatuses,
-  entityState: T,
+  store: EntityStore<T>,
   rootEntity: T | EntityGetter<T>,
   contextEntity: T,
+  statuses: UseCaseStatuses,
 ): T => {
   const prevRootEntityRef = useRef(rootEntity);
   const entityRootDisabled = (statuses & UseCaseStatuses.EntityRootEnabled) !== UseCaseStatuses.EntityRootEnabled;
@@ -21,7 +22,7 @@ export const useRuntimeEntity = <T>(
   switch (true) {
     case isFunction:
     case prevRootEntity === rootEntity:
-      return entityState;
+      return store.value;
   }
 
   prevRootEntityRef.current = rootEntity;

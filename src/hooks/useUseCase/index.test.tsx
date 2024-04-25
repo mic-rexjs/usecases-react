@@ -306,13 +306,12 @@ describe('useUseCase', (): void => {
       expect(entity).toBe(defaultFile);
     });
 
-    test('Should return the entity state if initial entity has not changed', (): void => {
+    test('Should return the `EntityStore.value` if root entity has not changed', (): void => {
       const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
         return useUseCase(defaultFile, fileUseCase);
       });
 
       const { current: collection } = result;
-
       const [, { setPath }] = collection;
 
       act((): void => {
@@ -322,20 +321,23 @@ describe('useUseCase', (): void => {
       expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_1, ext: EXT_1 });
     });
 
-    test('Should return the initial entity if initial entity has changed', (): void => {
+    test('Should return the root entity if root entity has changed', (): void => {
       let file = defaultFile;
 
       const { result, rerender } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
         return useUseCase(file, fileUseCase);
       });
 
-      file = { ...defaultFile, path: PATH_1 };
+      file = { ...defaultFile, path: PATH_2 };
 
       rerender();
-      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_1 });
+      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_2 });
+      // 渲染多一次，避免第二次渲染的 `entity` 没变化而取错缓存的情况
+      rerender();
+      expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_2 });
     });
 
-    test('Should return the initial entity if initial entity has changed even with entity state changed', (): void => {
+    test('Should return the root entity if root entity has changed even with entity state changed', (): void => {
       let file = defaultFile;
 
       const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
