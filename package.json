@@ -1,6 +1,6 @@
 {
   "name": "@mic-rexjs/usecases-react",
-  "version": "2.5.1",
+  "version": "2.5.2",
   "description": "React-based solution for use usecases of Clean Architecture",
   "private": true,
   "keywords": [
@@ -21,7 +21,7 @@
     "pub:build": "yarn run build && npm publish ./build",
     "lint-all": "eslint src/* --ext .tsx,.ts",
     "test": "jest --config=./configs/jest.config.ts",
-    "test-staged": "jest --config=./configs/jest.config.ts --findRelatedTests $(git diff --name-only --cached) --passWithNoTests"
+    "test-staged": "jest --config=./configs/jest.config.ts --onlyChanged --passWithNoTests"
   },
   "main": "lib/index.js",
   "typings": "es/index.d.ts",
@@ -44,7 +44,7 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@mic-rexjs/usecases": "^2.7.5",
+    "@mic-rexjs/usecases": "^2.7.7",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
   },
   "dependencies": {
@@ -60,7 +60,7 @@
     "@commitlint/cli": "^19.0.3",
     "@commitlint/config-angular": "^19.0.3",
     "@jest/globals": "^29.5.0",
-    "@mic-rexjs/usecases": "^2.7.6",
+    "@mic-rexjs/usecases": "^2.7.7",
     "@testing-library/react": "^14.0.0",
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.14",
