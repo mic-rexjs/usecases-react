@@ -42,21 +42,36 @@ export interface EntityWatcher<T, TValue = unknown> {
   (event: EntityWatchEvent<T, TValue>): void;
 }
 
-export type PropertyPath<T, K extends keyof T = keyof T & string> = K extends infer TKey
-  ? `${TKey & (string | number)}${'' | DotAccessorFieldPath<T[TKey & keyof T]>}`
+// 几个点就是几层，所以这里默认最多 5 层
+export type PathTemplate = '1.2.3.4.5.6';
+
+export type NextPathTemplate<T extends string> = T extends `${string}.${infer U}` ? U : T;
+
+export type PropertyPath<
+  T,
+  TTemplate extends string,
+  K extends keyof T = keyof T & string,
+> = TTemplate extends `${string}.${string}`
+  ? K extends infer TKey
+    ? `${TKey & (string | number)}${'' | DotAccessorFieldPath<T[TKey & keyof T], TTemplate>}`
+    : never
   : never;
 
-export type DotAccessorFieldPath<T> = T extends unknown[]
-  ? '.length' | `${'' | `.${number}`}${DotAccessorFieldPath<T[number]>}`
-  : T extends object
-    ? `.${PropertyPath<T>}`
-    : '';
+export type DotAccessorFieldPath<T, TTemplate extends string> = TTemplate extends `${string}.${string}`
+  ? T extends unknown[]
+    ? '.length' | `${'' | `.${number}`}${DotAccessorFieldPath<T[number], NextPathTemplate<TTemplate>>}`
+    : T extends object
+      ? `.${PropertyPath<T, NextPathTemplate<TTemplate>>}`
+      : ''
+  : '';
 
-export type FieldPath<T> = T extends unknown[]
-  ? FieldPath<T[number]> | 'length'
-  : T extends object
-    ? PropertyPath<T>
-    : never;
+export type FieldPath<T, TTemplate extends string = PathTemplate> = TTemplate extends `${string}.${string}`
+  ? T extends unknown[]
+    ? FieldPath<T[number], NextPathTemplate<TTemplate>> | 'length'
+    : T extends object
+      ? PropertyPath<T, TTemplate>
+      : never
+  : never;
 
 export type ExtractPropertyType<T, TPath> = TPath extends `${infer TKey}.${infer TSubPath}`
   ? T extends unknown[]
