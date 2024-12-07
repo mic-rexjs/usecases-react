@@ -42,8 +42,8 @@ export interface EntityWatcher<T, TValue = unknown> {
   (event: EntityWatchEvent<T, TValue>): void;
 }
 
-// 几个点就是几层，所以这里默认最多 5 层
-export type PathTemplate = '1.2.3.4.5.6';
+// 几个点就是几层，所以这里默认最多 2 层，因为超过 2 层就会报层级过深的问题
+export type PathTemplate = '1.2.3';
 
 export type NextPathTemplate<T extends string> = T extends `${string}.${infer U}` ? U : T;
 
