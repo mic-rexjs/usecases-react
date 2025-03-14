@@ -106,9 +106,12 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
       return true;
     };
 
-    const registerGlobalUseCase = <T>(entity: T, usecase: InferableEntityUseCase<T>): void => {
+    const registerGlobalUseCase = <T, TUseCase extends InferableEntityUseCase<T>>(
+      entity: T,
+      usecase: TUseCase,
+    ): TUseCase => {
       if (globalContextMap.has(usecase)) {
-        return;
+        return usecase;
       }
 
       const store = new EntityStore(entity);
@@ -118,6 +121,7 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
 
       globalContextMap.set(usecase, context);
       globalContextValueMap.set(context, contextValue);
+      return usecase;
     };
 
     const unregisterGlobalUseCase = <T>(usecase: InferableEntityUseCase<T>): boolean => {

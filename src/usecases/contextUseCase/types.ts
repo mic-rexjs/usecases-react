@@ -84,7 +84,7 @@ export type ContextReducers = Reducers<{
     argumentTypes: ArgumentTypes,
   ): boolean;
 
-  registerGlobalUseCase<T>(entity: T, usecase: InferableEntityUseCase<T>): void;
+  registerGlobalUseCase<T, TUseCase extends InferableEntityUseCase<T>>(entity: T, usecase: TUseCase): TUseCase;
 
   unregisterGlobalUseCase<T>(usecase: InferableEntityUseCase<T>): boolean;
 }>;
