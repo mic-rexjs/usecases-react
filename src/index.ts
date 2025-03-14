@@ -1,5 +1,6 @@
 export { UseCaseFragment } from './components/UseCaseFragment';
 export { useUseCase } from './hooks/useUseCase';
+export { registerGlobalUseCase } from './methods/registerGlobalUseCase';
 
 export type {
   EntityWatchEvent,

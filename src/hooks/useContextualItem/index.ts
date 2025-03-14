@@ -1,11 +1,11 @@
 import { useCreation, useLatest } from 'ahooks';
-import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
+import { Statuses } from '@/enums/Statuses';
 import { CreateContextualItemFactory } from './types';
 import { cacheCall } from '@/methods/cacheCall';
 
 export const useContextualItem = <T>(
   contextItem: T | null,
-  statuses: UseCaseStatuses,
+  statuses: Statuses,
   createFactory: CreateContextualItemFactory<T>,
   depsKey = 0,
 ): T => {
@@ -22,7 +22,7 @@ export const useContextualItem = <T>(
   }, [depsKey, factoryRef]);
 
   return useCreation((): T => {
-    const rootEnabled = (statuses & UseCaseStatuses.RootEnabled) === UseCaseStatuses.RootEnabled;
+    const rootEnabled = (statuses & Statuses.RootEnabled) === Statuses.RootEnabled;
 
     if (!rootEnabled && contextItem) {
       return contextItem as T;

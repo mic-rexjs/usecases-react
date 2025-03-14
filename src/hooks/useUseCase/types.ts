@@ -1,24 +1,32 @@
-import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
+import { UseCase } from '@mic-rexjs/usecases';
 import { UseCaseProvider } from '../useProvider/types';
-import { ContextualEntityReducers } from '@/configs/defaultUseCaseContext/types';
-import { SymbolSet, SymbolSetTarget } from '@mic-rexjs/usecases/es/types';
+import { ContextualEntityReducers } from '@/usecases/contextUseCase/types';
+
+import {
+  EntityReducerMap,
+  EntityReducers,
+  InferableEntityUseCase,
+  ReducerMap,
+  SymbolSet,
+  SymbolSetTarget,
+} from '@mic-rexjs/usecases/es/types';
 
 export interface NonEntitySymbolSet extends SymbolSet {
   entity?: never;
 }
 
-export type RootCoreCollection<T, TEntityReducers extends EntityReducers<T>> = [
+export type RootCoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = [
   entity: T,
   reducers: ContextualEntityReducers<T, TEntityReducers>,
   Provider: UseCaseProvider,
 ];
 
-export type ContextualCoreCollection<T, TEntityReducers extends EntityReducers<T>> = [
+export type ContextualCoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = [
   entity: T,
   reducers: ContextualEntityReducers<T, TEntityReducers>,
 ];
 
-export type CoreCollection<T, TEntityReducers extends EntityReducers<T>> =
+export type CoreCollection<T, TEntityReducers extends EntityReducerMap<T>> =
   | RootCoreCollection<T, TEntityReducers>
   | ContextualCoreCollection<T, TEntityReducers>;
 
@@ -107,7 +115,7 @@ export type UseCaseHookOptions<T, TUseCaseOptions extends object = object> = TUs
   UseCaseHookOwnOptions<T, TUseCaseOptions>;
 
 export interface ReducersHook {
-  <T extends Reducers, TUseCaseOptions extends object = object>(
+  <T extends ReducerMap, TUseCaseOptions extends object = object>(
     usecase: UseCase<T & SymbolSetTarget<NonEntitySymbolSet>, TUseCaseOptions>,
     options?: TUseCaseOptions,
     deps?: unknown[],
@@ -116,19 +124,19 @@ export interface ReducersHook {
 
 export interface ContextualCoreCollectionHook {
   <T, TEntityReducers extends EntityReducers<T>>(
-    usecase: EntityUseCase<T, TEntityReducers> & UseCase<EntityReducers<T>>,
+    usecase: InferableEntityUseCase<T, TEntityReducers>,
     options?: UseCaseHookContextualOptions<T>,
     deps?: unknown[],
   ): ContextualCoreCollection<T, TEntityReducers>;
 }
 
 export interface RootCoreCollectionHook {
-  <T, TEntityReducers extends EntityReducers<T>, TUseCaseOptions extends object = object>(
+  <T, TEntityReducers extends EntityReducerMap<T>, TUseCaseOptions extends object = object>(
     entity: T | EntityGetter<T>,
-    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions> & UseCase<EntityReducers<T>, TUseCaseOptions>,
+    usecase: InferableEntityUseCase<T, TEntityReducers & EntityReducers<T>, TUseCaseOptions>,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
     deps?: unknown[],
-  ): RootCoreCollection<T, TEntityReducers>;
+  ): RootCoreCollection<T, EntityReducers<T, TEntityReducers>>;
 }
 
 export interface CoreCollectionHook extends ContextualCoreCollectionHook, RootCoreCollectionHook {}

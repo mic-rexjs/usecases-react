@@ -13,6 +13,7 @@ import { useUseCase } from '.';
 import { useDeepCompareEffect, useMemoizedFn, useMount, useUpdate, useUpdateEffect } from 'ahooks';
 import { Dispatch, Fragment, useEffect, useRef, useState } from 'react';
 import { EntityWatchEvent, RootCoreCollection } from './types';
+import { registerGlobalUseCase } from '@/methods/registerGlobalUseCase';
 
 interface TestFieldPathData {
   list?: TestFile[];
@@ -1533,7 +1534,7 @@ describe('useUseCase', (): void => {
     });
   });
 
-  describe('`useUseCase` should work the same as useContextualCoreCollection', (): void => {
+  describe('`useUseCase` should work the same as `useContextualCoreCollection`', (): void => {
     test('Should trigger Parent & Child to update', (): void => {
       const onParentUpdate = jest.fn();
       const onChildUpdate = jest.fn();
@@ -2038,6 +2039,168 @@ describe('useUseCase', (): void => {
         newValue: '',
         oldValue: EXT_1,
       });
+    });
+
+    test('global usecase should share the entity to any components', (): void => {
+      const onValue = jest.fn<(value: number) => void>();
+      const firstButtonText = 'first button';
+      const secondButtonText = 'second button';
+
+      const numberUseCase = (): EntityReducers<number, Record<never, never>> => {
+        return entityUseCase();
+      };
+
+      const A = (): React.ReactElement => {
+        const [entity, { setEntity }] = useUseCase(numberUseCase);
+
+        const onButtonClick = (): void => {
+          setEntity(2);
+        };
+
+        useMount((): void => {
+          onValue(entity);
+        });
+
+        return (
+          <div>
+            <button onClick={onButtonClick}>{firstButtonText}</button>
+          </div>
+        );
+      };
+
+      const B = (): React.ReactElement => {
+        const [entity, { setEntity }] = useUseCase(numberUseCase);
+
+        const onButtonClick = (): void => {
+          setEntity(3);
+        };
+
+        useMount((): void => {
+          onValue(entity);
+        });
+
+        return (
+          <div>
+            <button onClick={onButtonClick}>{secondButtonText}</button>
+          </div>
+        );
+      };
+
+      registerGlobalUseCase(1, numberUseCase);
+      render(<A />);
+      expect(onValue).toHaveBeenNthCalledWith(1, 1);
+
+      fireEvent.click(screen.getByText(firstButtonText));
+
+      render(<B />);
+      expect(onValue).toHaveBeenNthCalledWith(2, 2);
+
+      fireEvent.click(screen.getByText(secondButtonText));
+    });
+
+    test('global usecase should trigger `onChange` in any components when entity has changed', (): void => {
+      const onValueChange1 = jest.fn<(value: number) => void>();
+      const onValueChange2 = jest.fn<(value: number) => void>();
+      const firstButtonText = 'first button';
+      const secondButtonText = 'second button';
+
+      const numberUseCase = (): EntityReducers<number, Record<never, never>> => {
+        return entityUseCase();
+      };
+
+      const A = (): React.ReactElement => {
+        const [, { setEntity }] = useUseCase(numberUseCase, {
+          onChange(value: number): void {
+            onValueChange1(value);
+          },
+        });
+
+        const onButtonClick = (): void => {
+          setEntity(2);
+        };
+
+        return (
+          <div>
+            <button onClick={onButtonClick}>{firstButtonText}</button>
+          </div>
+        );
+      };
+
+      const B = (): React.ReactElement => {
+        const [, { setEntity }] = useUseCase(numberUseCase, {
+          onChange(value: number): void {
+            onValueChange2(value);
+          },
+        });
+
+        const onButtonClick = (): void => {
+          setEntity(3);
+        };
+
+        return (
+          <div>
+            <button onClick={onButtonClick}>{secondButtonText}</button>
+          </div>
+        );
+      };
+
+      registerGlobalUseCase(1, numberUseCase);
+      render(<A />);
+
+      fireEvent.click(screen.getByText(firstButtonText));
+      expect(onValueChange1).toHaveBeenNthCalledWith(1, 2);
+
+      render(<B />);
+
+      fireEvent.click(screen.getByText(secondButtonText));
+      expect(onValueChange1).toHaveBeenNthCalledWith(2, 3);
+      expect(onValueChange2).toHaveBeenNthCalledWith(1, 3);
+    });
+
+    test('global usecase should trigger update for components when entity has changed', (): void => {
+      const onUpdate1 = jest.fn<(value: number) => void>();
+      const onUpdate2 = jest.fn<(value: number) => void>();
+      const buttonText = 'my button';
+
+      const numberUseCase = (): EntityReducers<number, Record<never, never>> => {
+        return entityUseCase();
+      };
+
+      const A = (): React.ReactElement => {
+        const [entity, { setEntity }] = useUseCase(numberUseCase);
+
+        const onButtonClick = (): void => {
+          setEntity(6);
+        };
+
+        useUpdateEffect((): void => {
+          onUpdate1(entity);
+        }, [entity]);
+
+        return (
+          <div>
+            <button onClick={onButtonClick}>{buttonText}</button>
+          </div>
+        );
+      };
+
+      const B = (): React.ReactElement => {
+        const [entity] = useUseCase(numberUseCase);
+
+        useUpdateEffect((): void => {
+          onUpdate2(entity);
+        }, [entity]);
+
+        return <A />;
+      };
+
+      registerGlobalUseCase(1, numberUseCase);
+      render(<B />);
+
+      fireEvent.click(screen.getByText(buttonText));
+
+      expect(onUpdate1).toHaveBeenNthCalledWith(1, 6);
+      expect(onUpdate2).toHaveBeenNthCalledWith(1, 6);
     });
   });
 

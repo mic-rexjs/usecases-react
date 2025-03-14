@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
 import { EntityStore } from '@mic-rexjs/usecases';
-import { UseCaseStatuses } from '@/enums/UseCaseStatuses';
+import { Statuses } from '@/enums/Statuses';
 import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
 import { useContextualItem } from '../useContextualItem';
-import { useCreation, useLatest, useUpdate } from 'ahooks';
+import { useCreation, useLatest, useMemoizedFn, useUpdate } from 'ahooks';
 import { triggerWatchers } from '@/methods/triggerWatchers';
 import { useRuntimeEntity } from '../useRuntimeEntity';
 
@@ -12,33 +12,43 @@ export const useEntity = <
   TUseCaseOptions extends object,
   TOptions extends UseCaseHookOptions<T, TUseCaseOptions> = UseCaseHookOptions<T, TUseCaseOptions>,
 >(
-  statuses: UseCaseStatuses,
-  rootEntity: T | EntityGetter<T>,
+  statuses: Statuses,
+  entityArg: T | EntityGetter<T>,
   contextStore: EntityStore<T> | null,
   options: TOptions,
-  depsKey: number,
 ): [entity: T, store: EntityStore<T>] => {
   const update = useUpdate();
   const optionsRef = useLatest(options);
   const contextEntity = (contextStore ? contextStore.value : null) as T;
-  const entityEnabled = (statuses & UseCaseStatuses.EntityEnabled) === UseCaseStatuses.EntityEnabled;
-  const entityRootEnabled = (statuses & UseCaseStatuses.EntityRootEnabled) === UseCaseStatuses.EntityRootEnabled;
+  const entityEnabled = (statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled;
+  const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
 
   const store = useContextualItem(contextStore, statuses, (): EntityStore<T> => {
     if (!entityRootEnabled) {
       return new EntityStore(null as T);
     }
 
-    const isFunction = typeof rootEntity === 'function';
+    const isFunction = typeof entityArg === 'function';
 
-    return new EntityStore(isFunction ? (rootEntity as EntityGetter<T>)() : rootEntity, {
-      onChange(): void {
-        update();
-      },
-    });
+    return new EntityStore(isFunction ? (entityArg as EntityGetter<T>)() : entityArg);
   });
 
-  const runtimeEntity = useRuntimeEntity(store, rootEntity, contextEntity, statuses);
+  const runtimeEntity = useRuntimeEntity(store, entityArg, contextEntity, statuses);
+
+  const onEntityChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
+    const { onChange, watch } = optionsRef.current;
+    const globalEnabled = (statuses & Statuses.GlobalEnabled) === Statuses.GlobalEnabled;
+
+    if (watch) {
+      triggerWatchers(watch, newEntity, oldEntity);
+    }
+
+    onChange?.(newEntity, oldEntity);
+
+    if (entityRootEnabled || globalEnabled) {
+      update();
+    }
+  });
 
   if (entityRootEnabled) {
     // 执行同步操作
@@ -50,22 +60,12 @@ export const useEntity = <
       return;
     }
 
-    const onEntityChange = (newEntity: T, oldEntity: T): void => {
-      const { onChange, watch } = optionsRef.current;
-
-      if (watch) {
-        triggerWatchers(watch, newEntity, oldEntity);
-      }
-
-      onChange?.(newEntity, oldEntity);
-    };
-
     store.watch(onEntityChange);
 
     return (): void => {
       store.unwatch(onEntityChange);
     };
-  }, [entityEnabled, store, depsKey, optionsRef]);
+  }, [entityEnabled, store, onEntityChange]);
 
   return useCreation((): [entity: T, store: EntityStore<T>] => {
     return [runtimeEntity, store];
