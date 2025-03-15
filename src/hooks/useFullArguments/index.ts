@@ -2,7 +2,6 @@ import { UseCaseHookOptions, UseCaseHookParameters } from '@/hooks/useUseCase/ty
 import { EntityReducers, EntityUseCase, UseCase } from '@mic-rexjs/usecases';
 import { FullParameters } from './types';
 import { ArgumentTypes } from '@/enums/ArgumentTypes';
-import { useContextUseCase } from '../useContextUseCase';
 import { ReducerMap } from '@mic-rexjs/usecases/es/types';
 
 export const useFullArguments = <T, TReducers extends ReducerMap, TUseCaseOptions extends object>(
@@ -11,10 +10,8 @@ export const useFullArguments = <T, TReducers extends ReducerMap, TUseCaseOption
 ): FullParameters<T, TReducers, TUseCaseOptions> => {
   const [arg1, arg2, arg3, arg4] = args;
   const withoutEntity = (argumentTypes & ArgumentTypes.Entity) !== ArgumentTypes.Entity;
-  const { isGlobal } = useContextUseCase();
-  const global = isGlobal(arg1 as EntityUseCase<T>);
 
-  if (withoutEntity || global) {
+  if (withoutEntity) {
     return [
       null as T,
       arg1 as UseCase<TReducers> | EntityUseCase<T, TReducers & EntityReducers<T>>,

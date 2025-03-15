@@ -37,7 +37,6 @@ export const useEntity = <
 
   const onEntityChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
     const { onChange, watch } = optionsRef.current;
-    const globalEnabled = (statuses & Statuses.GlobalEnabled) === Statuses.GlobalEnabled;
 
     if (watch) {
       triggerWatchers(watch, newEntity, oldEntity);
@@ -45,9 +44,11 @@ export const useEntity = <
 
     onChange?.(newEntity, oldEntity);
 
-    if (entityRootEnabled || globalEnabled) {
-      update();
+    if (!entityRootEnabled) {
+      return;
     }
+
+    update();
   });
 
   if (entityRootEnabled) {

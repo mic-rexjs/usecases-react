@@ -1,4 +1,5 @@
 import { useCreation, useLatest } from 'ahooks';
+import { useContext as useContextValue } from 'react';
 import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
 import { UseCaseHookOptions, UseCaseHook, CoreCollection, UseCaseHookParameters } from './types';
 import { useConstantFn } from '../useConstantFn';
@@ -17,7 +18,6 @@ import { captureCalls } from '@/methods/captureCalls';
 import { ReducerMap, RestArguments } from '@mic-rexjs/usecases/es/types';
 import { ContextualEntityReducers, EntityContextValue } from '@/usecases/contextUseCase/types';
 import { useFullArguments } from '../useFullArguments';
-import { useContextValue } from '../useContextValue';
 
 export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions extends object>(
   ...args: UseCaseHookParameters
@@ -30,7 +30,7 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
   const usecase = unkownUsecase as UseCase<TReducers, TUseCaseOptions>;
   const entityUseCase = unkownUsecase as EntityUseCase<T, EntityReducers<T>, TUseCaseOptions>;
   const context = useContext(unkownUsecase, argumentTypes);
-  const contextValue = useContextValue(context, argumentTypes);
+  const contextValue = useContextValue(context);
   const entityContextValue = contextValue as EntityContextValue<T, EntityReducers<T>> | null;
   const statuses = useStatuses(argumentTypes, contextValue);
   const optionsRef = useLatest(options);

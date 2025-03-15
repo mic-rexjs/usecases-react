@@ -10,7 +10,7 @@ import {
   Reducers,
 } from '@mic-rexjs/usecases';
 
-import { EntityReducerMap, InferableEntityUseCase, InferableUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
+import { EntityReducerMap, InferableUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
 
 export type ContextualEntityReducer<T, TEntityReducer extends EntityReducer<T>> = TEntityReducer extends (
   // 不能使用 `T`, 假设 `T = 1` 而且 `TEntityReducer = EntityReducer<number>`，那么下面推导就会不成立
@@ -56,20 +56,6 @@ export type ContextReducers = Reducers<{
     statuses: Statuses,
   ): ContextValue<TReducers>;
 
-  getGlobalContextValue<
-    T,
-    TEntityReducers extends EntityReducerMap<T>,
-    TContextValue extends ContextValue<TEntityReducers> = ContextValue<TEntityReducers>,
-  >(
-    key: Context<TContextValue>,
-  ): TContextValue;
-
-  getGlobalContextValue<T, TEntityReducers extends EntityReducerMap<T>>(
-    usecase: InferableEntityUseCase<T, TEntityReducers>,
-  ): ContextValue<TEntityReducers> | null;
-
-  isGlobal<T>(usecase: InferableEntityUseCase<T>): boolean;
-
   registerUseCase<
     T extends ReducerMap,
     TUseCaseOptions extends object,
@@ -83,10 +69,6 @@ export type ContextReducers = Reducers<{
     usecase: InferableUseCase<T, TUseCaseOptions>,
     argumentTypes: ArgumentTypes,
   ): boolean;
-
-  registerGlobalUseCase<T, TUseCase extends InferableEntityUseCase<T>>(entity: T, usecase: TUseCase): TUseCase;
-
-  unregisterGlobalUseCase<T>(usecase: InferableEntityUseCase<T>): boolean;
 }>;
 
 export interface ContextUseCase {

@@ -17,11 +17,6 @@ export enum Statuses {
   EntityEnabled = 0b10 ** 3,
 
   /**
-   * 是否为全局模式
-   */
-  GlobalEnabled = EntityEnabled | ContextEnabled | (0b10 ** 4),
-
-  /**
    * 是否为需要提供 `Provider` 去挂载根 `context`
    */
   ContextRootEnabled = ContextEnabled | RootEnabled,

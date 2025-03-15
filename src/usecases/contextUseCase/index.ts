@@ -3,13 +3,10 @@ import { Context, ContextReducers, ContextReference, ContextUseCase, ContextValu
 import { ArgumentTypes } from '@/enums/ArgumentTypes';
 import { createContext } from 'react';
 import { Statuses } from '@/enums/Statuses';
-import { EntityReducerMap, InferableEntityUseCase, InferableUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
-import { initEntityReducers } from '@/methods/initEntityReducers';
+import { InferableUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
 
 export const contextUseCase = createUseCase((): ContextUseCase => {
   const referenceMap = new Map();
-  const globalContextMap = new Map();
-  const globalContextValueMap = new Map();
   const defaultUseCaseContext = createContext(null);
 
   return (): ContextReducers => {
@@ -27,22 +24,6 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
       }
 
       return { reducers, statuses };
-    };
-
-    const getGlobalContextValue = <
-      T,
-      TEntityReducers extends EntityReducerMap<T>,
-      TContextValue extends ContextValue<TEntityReducers> = ContextValue<TEntityReducers>,
-    >(
-      key: Context<TContextValue> | InferableEntityUseCase<T, TEntityReducers>,
-    ): TContextValue | null => {
-      const context = typeof key === 'function' ? (globalContextMap.get(key) as Context<TContextValue>) : key;
-
-      return globalContextValueMap.get(context) || null;
-    };
-
-    const isGlobal = <T>(usecase: InferableEntityUseCase<T>): boolean => {
-      return globalContextMap.has(usecase);
     };
 
     const registerUseCase = <
@@ -106,45 +87,10 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
       return true;
     };
 
-    const registerGlobalUseCase = <T, TUseCase extends InferableEntityUseCase<T>>(
-      entity: T,
-      usecase: TUseCase,
-    ): TUseCase => {
-      if (globalContextMap.has(usecase)) {
-        return usecase;
-      }
-
-      const store = new EntityStore(entity);
-      const reducers = initEntityReducers(usecase, store, {});
-      const contextValue = createContextValue(store, reducers, Statuses.GlobalEnabled);
-      const context = registerUseCase(usecase, ArgumentTypes.GlobalEntity);
-
-      globalContextMap.set(usecase, context);
-      globalContextValueMap.set(context, contextValue);
-      return usecase;
-    };
-
-    const unregisterGlobalUseCase = <T>(usecase: InferableEntityUseCase<T>): boolean => {
-      if (!globalContextMap.has(usecase)) {
-        return false;
-      }
-
-      const context = globalContextMap.get(usecase);
-
-      globalContextMap.delete(usecase);
-      globalContextValueMap.delete(context);
-      referenceMap.delete(usecase);
-      return true;
-    };
-
     return {
       createContextValue,
-      getGlobalContextValue,
-      isGlobal,
       registerUseCase,
-      registerGlobalUseCase,
       unregisterUseCase,
-      unregisterGlobalUseCase,
     };
   };
 });

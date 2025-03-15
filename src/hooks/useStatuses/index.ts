@@ -13,24 +13,19 @@ export const useStatuses = <T extends ReducerMap>(
     let statuses = Statuses.None;
     const { store } = (contextValue || {}) as Partial<EntityContextValue<T, EntityReducers<T>>>;
     const hasEntity = (argumentTypes & ArgumentTypes.Entity) === ArgumentTypes.Entity;
-    const isGlobal = (argumentTypes & ArgumentTypes.Global) === ArgumentTypes.Global;
 
-    if (hasEntity && !isGlobal) {
+    if (hasEntity) {
       statuses |= Statuses.EntityRootEnabled;
     }
 
-    if (contextValue || isGlobal) {
+    if (contextValue) {
       statuses |= Statuses.ContextEnabled;
     } else {
       statuses |= Statuses.RootEnabled;
     }
 
-    if (store || isGlobal) {
+    if (store) {
       statuses |= Statuses.EntityEnabled;
-    }
-
-    if (isGlobal) {
-      statuses |= Statuses.GlobalEnabled;
     }
 
     return statuses;

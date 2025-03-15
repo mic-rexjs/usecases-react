@@ -123,7 +123,7 @@ export interface ReducersHook {
 }
 
 export interface ContextualCoreCollectionHook {
-  <T, TEntityReducers extends EntityReducers<T>>(
+  <T, TEntityReducers extends EntityReducerMap<T>>(
     usecase: InferableEntityUseCase<T, TEntityReducers>,
     options?: UseCaseHookContextualOptions<T>,
     deps?: unknown[],
