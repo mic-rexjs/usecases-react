@@ -1,6 +1,6 @@
 {
   "name": "@mic-rexjs/usecases-react",
-  "version": "2.8.1",
+  "version": "2.8.2",
   "description": "React-based solution for use usecases of Clean Architecture",
   "private": true,
   "sideEffects": false,
@@ -25,6 +25,7 @@
     "test-staged": "jest --config=./configs/jest.config.ts --onlyChanged --passWithNoTests"
   },
   "main": "lib/index.js",
+  "module": "es/index.js",
   "typings": "es/index.d.ts",
   "unpkg": "dist/index.min.js",
   "files": [
@@ -45,7 +46,7 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@mic-rexjs/usecases": "^2.12.4",
+    "@mic-rexjs/usecases": "^2.12.5",
     "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
   },
   "dependencies": {
@@ -61,7 +62,7 @@
     "@commitlint/cli": "^19.0.3",
     "@commitlint/config-angular": "^19.0.3",
     "@jest/globals": "^29.5.0",
-    "@mic-rexjs/usecases": "^2.12.4",
+    "@mic-rexjs/usecases": "^2.12.5",
     "@testing-library/react": "^14.0.0",
     "@types/node": "^20.4.2",
     "@types/react": "^18.2.14",
