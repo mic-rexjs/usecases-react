@@ -31,7 +31,7 @@ export type CoreCollection<T, TEntityReducers extends EntityReducerMap<T>> =
   | ContextualCoreCollection<T, TEntityReducers>;
 
 export interface EntityGetter<T> {
-  (): T;
+  (entity?: T): T;
 }
 
 export interface EntityWatchEvent<T, TValue = unknown> {

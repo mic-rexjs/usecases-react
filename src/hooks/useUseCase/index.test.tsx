@@ -355,6 +355,61 @@ describe('useUseCase', (): void => {
       expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_2 });
     });
 
+    test('Should support entity getter', (): void => {
+      const file = defaultFile;
+
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase((): TestFile => {
+          return file;
+        }, fileUseCase);
+      });
+
+      const {
+        current: [currentFile],
+      } = result;
+
+      expect(currentFile).toEqual(file);
+    });
+
+    test('Entity getter should provide the first argument with current entity when deps has change.', (): void => {
+      let entityArg;
+      const file = defaultFile;
+
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(
+          (entity: TestFile = file): TestFile => {
+            const { path } = entity;
+
+            entityArg = entity;
+
+            return {
+              ...entity,
+              path: path + '1',
+            };
+          },
+          fileUseCase,
+          {},
+          [Date.now()],
+        );
+      });
+
+      const { current: collection1 } = result;
+      const [currentFile1, { setPath }] = collection1;
+
+      expect(entityArg).toEqual(defaultFile);
+      expect(currentFile1).toEqual({ ...defaultFile, path: '1' });
+
+      act((): void => {
+        setPath('2');
+      });
+
+      const { current: collection2 } = result;
+      const [currentFile2] = collection2;
+
+      expect(entityArg).toEqual({ ...defaultFile, path: '2' });
+      expect(currentFile2).toEqual({ ...defaultFile, path: '21' });
+    });
+
     test('`reducers` should be returned as an object', (): void => {
       const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
         return useUseCase(defaultFile, fileUseCase);

@@ -37,7 +37,7 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
   const depsKey = useCompareDeps(deps);
   const { reducers: contextReducers = null } = contextValue || {};
   const { store: contextStore = null } = entityContextValue || {};
-  const [entity, store] = useEntity(statuses, unsafeEntity, contextStore, options);
+  const [entity, store] = useEntity(statuses, unsafeEntity, contextStore, options, depsKey);
 
   const reducers = useContextualItem(
     contextReducers,
