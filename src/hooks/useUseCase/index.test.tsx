@@ -1864,8 +1864,8 @@ describe('useUseCase', (): void => {
       expect(changeTimes).toBe(0);
       fireEvent.click(screen.getByText(buttonText));
       expect(onChangeA).toHaveReturnedWith(2);
-      expect(onChangeB).toHaveReturnedWith(1);
-      expect(onChangeC).toHaveReturnedWith(3);
+      expect(onChangeB).toHaveReturnedWith(3);
+      expect(onChangeC).toHaveReturnedWith(1);
     });
 
     test('`options.onChange` should always trigger the latest one in child components', (): void => {
@@ -2028,8 +2028,8 @@ describe('useUseCase', (): void => {
       expect(changeTimes).toBe(0);
       fireEvent.click(screen.getByText(buttonText));
       expect(onChangeA).toHaveReturnedWith(2);
-      expect(onChangeB).toHaveReturnedWith(1);
-      expect(onChangeC).toHaveReturnedWith(3);
+      expect(onChangeB).toHaveReturnedWith(3);
+      expect(onChangeC).toHaveReturnedWith(1);
     });
 
     test('`options.watch` should trigger the latest one in child components', (): void => {

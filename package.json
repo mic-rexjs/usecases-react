@@ -1,6 +1,6 @@
 {
   "name": "@mic-rexjs/usecases-react",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "description": "React-based solution for use usecases of Clean Architecture",
   "private": true,
   "sideEffects": false,

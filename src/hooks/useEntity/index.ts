@@ -29,14 +29,19 @@ export const useEntity = <
     contextStore,
     statuses,
     (): EntityStore<T> => {
-      if (!entityRootEnabled) {
-        return new EntityStore(null as T);
+      let newStore: EntityStore<T>;
+
+      if (entityRootEnabled) {
+        const isFunction = typeof entityArg === 'function';
+        const initailEntity = isFunction ? (entityArg as EntityGetter<T>)(storeRef.current?.value) : entityArg;
+
+        newStore = new EntityStore(initailEntity);
+      } else {
+        newStore = new EntityStore(null as T);
       }
 
-      const isFunction = typeof entityArg === 'function';
-      const initailEntity = isFunction ? (entityArg as EntityGetter<T>)(storeRef.current?.value) : entityArg;
-
-      return new EntityStore(initailEntity);
+      storeRef.current = newStore;
+      return newStore;
     },
     depsKey,
   );
@@ -59,20 +64,27 @@ export const useEntity = <
     update();
   });
 
-  storeRef.current = store;
-
   if (entityRootEnabled) {
     // 执行同步操作
     store.value = runtimeEntity;
   }
 
-  useEffect((): void | VoidFunction => {
+  /**
+   * 需要马上 `watch`，因为 `useEffect` 在子组件内优先执行，
+   * 如果使用了 `setEntity` 则无法监控到变化
+   */
+  useCreation((): void => {
     if (!entityEnabled) {
       return;
     }
 
     store.watch(onEntityChange);
+  }, [entityEnabled, store, onEntityChange]);
 
+  /**
+   * 在变化时候，组件更新前，使用 `unwatch`
+   */
+  useEffect((): VoidFunction => {
     return (): void => {
       store.unwatch(onEntityChange);
     };
