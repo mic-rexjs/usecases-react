@@ -11,6 +11,7 @@ const initConfig = (): Config => {
     testEnvironment: 'jest-environment-jsdom',
     rootDir: path.resolve(projectDir, baseUrl),
     displayName: 'test',
+    cache: false,
     testRegex: '\\.test\\.tsx?',
     transform: {
       '^.+\\.[tj]sx?$': [

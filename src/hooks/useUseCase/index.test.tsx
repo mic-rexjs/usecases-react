@@ -373,6 +373,7 @@ describe('useUseCase', (): void => {
 
     test('Entity getter should provide the first argument with current entity when deps has change.', (): void => {
       let entityArg;
+      let times = 0;
       const file = defaultFile;
 
       const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
@@ -389,7 +390,7 @@ describe('useUseCase', (): void => {
           },
           fileUseCase,
           {},
-          [Date.now()],
+          [times++],
         );
       });
 
@@ -495,10 +496,10 @@ describe('useUseCase', (): void => {
         });
       });
 
-      expect(mockUseCase).toHaveBeenCalledTimes(2);
+      expect(mockUseCase).toHaveBeenCalledTimes(1);
 
       rerender();
-      expect(mockUseCase).toHaveBeenCalledTimes(3);
+      expect(mockUseCase).toHaveBeenCalledTimes(2);
     });
 
     test('after call non-generator reducer, it should not trigger update', (): void => {
