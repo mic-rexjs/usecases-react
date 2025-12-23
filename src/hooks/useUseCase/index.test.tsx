@@ -11,7 +11,7 @@ import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import { renderHook, act, render, fireEvent, screen } from '@testing-library/react';
 import { useUseCase } from '.';
 import { useDeepCompareEffect, useMemoizedFn, useMount, useUpdate, useUpdateEffect } from 'ahooks';
-import { Dispatch, Fragment, useEffect, useRef, useState } from 'react';
+import { Dispatch, Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { EntityWatchEvent, RootCoreCollection } from './types';
 
 interface TestFieldPathData {
@@ -303,7 +303,7 @@ describe('useUseCase', (): void => {
       const { current: cores } = result;
       const [entity] = cores;
 
-      expect(entity).toBe(defaultFile);
+      expect(entity).toEqual(defaultFile);
     });
 
     test('Should return the `EntityStore.value` if root entity has not changed', (): void => {
@@ -369,6 +369,71 @@ describe('useUseCase', (): void => {
       } = result;
 
       expect(currentFile).toEqual(file);
+    });
+
+    test('Entity property getter should always return the same object if nothing changed after component update', (): void => {
+      let updateTimes = 0;
+
+      const data = {
+        x: 1,
+        get obj(): object {
+          return {};
+        },
+      };
+
+      const { rerender } = renderHook((): RootCoreCollection<typeof data, ObjectReducers<typeof data>> => {
+        const collection = useUseCase(data, objectUseCase);
+        const [{ obj }] = collection;
+
+        useMemo((): void => {
+          void obj;
+          updateTimes++;
+        }, [obj]);
+
+        return collection;
+      });
+
+      expect(updateTimes).toEqual(1);
+
+      act((): void => {
+        rerender();
+      });
+
+      expect(updateTimes).toEqual(1);
+    });
+
+    test('Entity property getter should always return a new object if something changed after component update', (): void => {
+      let updateTimes = 0;
+
+      const data = {
+        x: 1,
+        get obj(): object {
+          return {};
+        },
+      };
+
+      const { result } = renderHook((): RootCoreCollection<typeof data, ObjectReducers<typeof data>> => {
+        const collection = useUseCase(data, objectUseCase);
+        const [{ obj }] = collection;
+
+        useMemo((): void => {
+          void obj;
+          updateTimes++;
+        }, [obj]);
+
+        return collection;
+      });
+
+      const { current } = result;
+      const [, { setEntity }] = current;
+
+      expect(updateTimes).toEqual(1);
+
+      act((): void => {
+        setEntity({ x: 2 });
+      });
+
+      expect(updateTimes).toEqual(2);
     });
 
     test('Entity getter should provide the first argument with current entity when deps has change.', (): void => {
