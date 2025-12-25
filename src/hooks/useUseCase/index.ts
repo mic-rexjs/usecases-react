@@ -76,7 +76,10 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
       },
     });
 
-    const isObjectEntity = typeof entity === 'object' && entity !== null;
+    const isNull = entity === null;
+    const isArray = Array.isArray(entity);
+    const isObjectType = typeof entity === 'object';
+    const isObjectEntity = isObjectType && !isNull && !isArray;
     // 这里是为了让访问器 `getter` 的值保持唯一性，否则每次 `getter` 返回的对象都是新对象，无法用于 `deps`
     const newEntity = isObjectEntity ? { ...entity } : entity;
 
