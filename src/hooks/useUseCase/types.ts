@@ -111,8 +111,17 @@ export interface UseCaseHookOwnOptions<T, TUseCaseOptions extends object> extend
   options?: TUseCaseOptions;
 }
 
-export type UseCaseHookOptions<T, TUseCaseOptions extends object = object> = TUseCaseOptions &
-  UseCaseHookOwnOptions<T, TUseCaseOptions>;
+export type UnextendFunctionTypes<T> = T extends (...args: infer TArgs) => infer TReturn
+  ? (...args: TArgs) => TReturn
+  : T;
+
+export type UnextendOptionTypes<T> = {
+  [K in keyof T]: UnextendFunctionTypes<T[K]>;
+};
+
+export type UseCaseHookOptions<T, TUseCaseOptions extends object = object> =
+  // 这里要接触 `S extends T` 的关系，因为 `reducers` 里面的函数在去除 `entity` 时，也经过了这个步骤
+  UnextendOptionTypes<TUseCaseOptions> & UseCaseHookOwnOptions<T, TUseCaseOptions>;
 
 export interface ReducersHook {
   <T extends ReducerMap, TUseCaseOptions extends object = object>(

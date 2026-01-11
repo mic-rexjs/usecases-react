@@ -81,6 +81,10 @@ interface ChildProps extends CommonProps {
   onUndefinedEntity?(): void;
 }
 
+interface DataOptions<T> {
+  onUpdate?<S extends T>(data: S): Promise<S>;
+}
+
 interface FileUseCaseOptions {
   pathPrefix?: string;
 
@@ -925,6 +929,27 @@ describe('useUseCase', (): void => {
       });
 
       expect(result.current[0].path).toBe('123/' + PATH_1);
+    });
+
+    test('Option functions: use `T` (not `S`) when `S extends T`', (): void => {
+      const testObjectUseCase = <T extends TestFile>(options: DataOptions<T> = {}): ObjectReducers<T> => {
+        const objectReducers = objectUseCase();
+
+        void options;
+        return { ...objectReducers };
+      };
+
+      renderHook((): void => {
+        useUseCase(defaultFile, testObjectUseCase, {
+          onUpdate(data: TestFile): Promise<TestFile> {
+            void data;
+            return Promise.reject();
+          },
+        });
+      });
+
+      // 这个测试仅仅是为了确保类型不会报错，不验证实际逻辑
+      expect(1).toBe(1);
     });
 
     test('when `options` has changed, it should not trigger update', (): void => {
