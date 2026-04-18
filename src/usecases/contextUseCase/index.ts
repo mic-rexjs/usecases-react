@@ -28,9 +28,9 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
 
     const getUseCaseContext = <T extends ReducerMap, TUseCaseOptions extends object>(
       usecase: InferableUseCase<T, TUseCaseOptions>,
-    ): Context<ContextValue<T>> | null => {
+    ): Context<ContextValue<T>> => {
       if (!referenceMap.has(usecase)) {
-        return null;
+        return defaultUseCaseContext as Context<ContextValue<T>>;
       }
 
       const { value } = referenceMap.get(usecase) as ContextReference<ContextValue<T>>;

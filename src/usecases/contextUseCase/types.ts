@@ -58,7 +58,7 @@ export type ContextReducers = Reducers<{
 
   getUseCaseContext<T extends ReducerMap, TUseCaseOptions extends object>(
     usecase: InferableUseCase<T, TUseCaseOptions>,
-  ): Context<ContextValue<T>> | null;
+  ): Context<ContextValue<T>>;
 
   registerUseCase<T extends ReducerMap, TUseCaseOptions extends object>(
     usecase: InferableUseCase<T, TUseCaseOptions>,
