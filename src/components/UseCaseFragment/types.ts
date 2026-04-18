@@ -6,5 +6,7 @@ export interface UseCaseFragmentProps<T, TEntityReducers extends EntityReducerMa
 
   watch?: EntityWatchMap<T>;
 
+  onMount?(entity: T): void;
+
   onChange?(newEntity: T, oldEntity: T): void;
 }
