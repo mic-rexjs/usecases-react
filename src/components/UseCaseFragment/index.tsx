@@ -2,19 +2,15 @@ import { Fragment } from 'react';
 import { UseCaseFragmentProps } from './types';
 import { useUseCase } from '../../hooks/useUseCase';
 import { EntityReducerMap } from '@mic-rexjs/usecases/es/types';
-import { useMount } from 'ahooks';
+import { contextUseCase } from '@/usecases/contextUseCase';
+import { SafeUseCaseFragment } from '../SafeUseCaseFragment';
 
 export const UseCaseFragment = <T, TEntityReducers extends EntityReducerMap<T>>({
   usecase,
-  watch,
-  onMount,
-  onChange,
+  ...props
 }: UseCaseFragmentProps<T, TEntityReducers>): React.ReactElement => {
-  const [entity] = useUseCase(usecase, { watch, onChange });
+  const { getUseCaseContext } = useUseCase(contextUseCase);
+  const context = getUseCaseContext(usecase);
 
-  useMount((): void => {
-    onMount?.(entity);
-  });
-
-  return <Fragment />;
+  return <Fragment>{context === null ? null : <SafeUseCaseFragment usecase={usecase} {...props} />}</Fragment>;
 };

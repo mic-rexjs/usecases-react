@@ -1,0 +1,12 @@
+import { EntityWatchMap } from '../../hooks/useUseCase/types';
+import { EntityReducerMap, InferableEntityUseCase } from '@mic-rexjs/usecases/es/types';
+
+export interface SafeUseCaseFragmentProps<T, TEntityReducers extends EntityReducerMap<T>> {
+  usecase: InferableEntityUseCase<T, TEntityReducers>;
+
+  watch?: EntityWatchMap<T>;
+
+  onMount?(entity: T): void;
+
+  onChange?(newEntity: T, oldEntity: T): void;
+}

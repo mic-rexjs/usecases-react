@@ -5,8 +5,8 @@ import { UseCaseProvider, UseCaseProviderProps } from './types';
 import { useConstantFn } from '../useConstantFn';
 import { Statuses } from '@/enums/Statuses';
 import { Context, ContextValue } from '@/usecases/contextUseCase/types';
-import { useContextUseCase } from '../useContextUseCase';
 import { ReducerMap } from '@mic-rexjs/usecases/es/types';
+import { contextUseCase } from '@/usecases/contextUseCase';
 
 export const useProvider = <T, TReducers extends ReducerMap>(
   statuses: Statuses,
@@ -15,12 +15,13 @@ export const useProvider = <T, TReducers extends ReducerMap>(
   reducers: TReducers,
 ): UseCaseProvider => {
   const { value: entity } = store;
-  const { createContextValue } = useContextUseCase();
 
   const contextValue = useMemo((): ContextValue<TReducers> => {
+    const { createContextValue } = contextUseCase();
+
     void entity;
     return createContextValue(store, reducers, statuses);
-  }, [statuses, entity, store, reducers, createContextValue]);
+  }, [statuses, entity, store, reducers]);
 
   const contextValueRef = useLatest(contextValue);
 
