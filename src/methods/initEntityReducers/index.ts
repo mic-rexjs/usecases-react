@@ -1,7 +1,7 @@
-import { EntityStore, createEntityReducers } from '@mic-rexjs/usecases';
 import { UseCaseHookOptions } from '../../hooks/useUseCase/types';
-import { ContextualEntityReducers } from '@/usecases/contextUseCase/types';
+import { createEntityReducers, EntityStore } from '@mic-rexjs/usecases';
 import { EntityReducerMap, InferableEntityUseCase } from '@mic-rexjs/usecases/es/types';
+import { ContextualEntityReducers } from '@/usecases/contextUseCase/types';
 
 export const initEntityReducers = <
   T,

@@ -1,11 +1,11 @@
-import { useEffect, useRef } from 'react';
-import { EntityStore } from '@mic-rexjs/usecases';
-import { Statuses } from '@/enums/Statuses';
-import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
 import { useContextualItem } from '../useContextualItem';
-import { useCreation, useLatest, useMemoizedFn, useUpdate } from 'ahooks';
-import { triggerWatchers } from '@/methods/triggerWatchers';
 import { useRuntimeEntity } from '../useRuntimeEntity';
+import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
+import { EntityStore } from '@mic-rexjs/usecases';
+import { useCreation, useLatest, useMemoizedFn, useUpdate } from 'ahooks';
+import { useEffect, useRef } from 'react';
+import { Statuses } from '@/enums/Statuses';
+import { triggerWatchers } from '@/methods/triggerWatchers';
 
 export const useEntity = <
   T,
@@ -19,7 +19,7 @@ export const useEntity = <
   depsKey: number,
 ): [entity: T, store: EntityStore<T>] => {
   const update = useUpdate();
-  const storeRef = useRef<EntityStore<T>>();
+  const storeRef = useRef<EntityStore<T>>(null);
   const optionsRef = useLatest(options);
   const contextEntity = (contextStore ? contextStore.value : null) as T;
   const entityEnabled = (statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled;
@@ -66,7 +66,7 @@ export const useEntity = <
 
   if (entityRootEnabled) {
     // 执行同步操作
-    store.value = runtimeEntity;
+    store.setValue(runtimeEntity, true);
   }
 
   /**

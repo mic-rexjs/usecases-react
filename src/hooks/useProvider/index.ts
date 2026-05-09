@@ -1,12 +1,12 @@
-import React, { FC, ReactElement, ReactNode, useMemo } from 'react';
-import { useLatest } from 'ahooks';
-import { EntityStore } from '@mic-rexjs/usecases';
-import { UseCaseProvider, UseCaseProviderProps } from './types';
 import { useConstantFn } from '../useConstantFn';
-import { Statuses } from '@/enums/Statuses';
-import { Context, ContextValue } from '@/usecases/contextUseCase/types';
+import { UseCaseProvider, UseCaseProviderProps } from './types';
+import { EntityStore } from '@mic-rexjs/usecases';
 import { ReducerMap } from '@mic-rexjs/usecases/es/types';
+import { useCreation, useLatest } from 'ahooks';
+import React, { FC, ReactElement, ReactNode } from 'react';
+import { Statuses } from '@/enums/Statuses';
 import { contextUseCase } from '@/usecases/contextUseCase';
+import { Context, ContextValue } from '@/usecases/contextUseCase/types';
 
 export const useProvider = <T, TReducers extends ReducerMap>(
   statuses: Statuses,
@@ -16,7 +16,7 @@ export const useProvider = <T, TReducers extends ReducerMap>(
 ): UseCaseProvider => {
   const { value: entity } = store;
 
-  const contextValue = useMemo((): ContextValue<TReducers> => {
+  const contextValue = useCreation((): ContextValue<TReducers> => {
     const { createContextValue } = contextUseCase();
 
     void entity;

@@ -1,6 +1,3 @@
-import { ArgumentTypes } from '@/enums/ArgumentTypes';
-import { Statuses } from '@/enums/Statuses';
-
 import {
   AsyncEntityGenerator,
   EntityGenerator,
@@ -9,8 +6,9 @@ import {
   ReducerKeys,
   Reducers,
 } from '@mic-rexjs/usecases';
-
 import { EntityReducerMap, InferableUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
+import { ArgumentTypes } from '@/enums/ArgumentTypes';
+import { Statuses } from '@/enums/Statuses';
 
 export type ContextualEntityReducer<T, TEntityReducer extends EntityReducer<T>> = TEntityReducer extends (
   // 不能使用 `T`, 假设 `T = 1` 而且 `TEntityReducer = EntityReducer<number>`，那么下面推导就会不成立
@@ -36,8 +34,9 @@ export interface ContextValue<T extends ReducerMap> {
   statuses: Statuses;
 }
 
-export interface EntityContextValue<T, TEntityReducers extends EntityReducerMap<T>>
-  extends ContextValue<ContextualEntityReducers<T, TEntityReducers>> {
+export interface EntityContextValue<T, TEntityReducers extends EntityReducerMap<T>> extends ContextValue<
+  ContextualEntityReducers<T, TEntityReducers>
+> {
   store: EntityStore<T>;
 }
 

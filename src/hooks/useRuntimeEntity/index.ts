@@ -1,7 +1,8 @@
+import { useEntityReducers } from '../useEntityReducers';
+import { EntityStore } from '@mic-rexjs/usecases';
 import { Statuses } from '@/enums/Statuses';
 import { EntityGetter } from '@/hooks/useUseCase/types';
-import { EntityStore } from '@mic-rexjs/usecases';
-import { useRef } from 'react';
+import { valueUseCase } from '@/usecases/valueUseCase';
 
 export const useRuntimeEntity = <T>(
   store: EntityStore<T>,
@@ -9,7 +10,8 @@ export const useRuntimeEntity = <T>(
   contextEntity: T,
   statuses: Statuses,
 ): T => {
-  const prevEntityArgRef = useRef(entityArg);
+  const { isValueChanged, recordValue } = useEntityReducers(entityArg, valueUseCase<T | EntityGetter<T>>);
+  const changed = isValueChanged(entityArg);
   const entityRootDisabled = (statuses & Statuses.EntityRootEnabled) !== Statuses.EntityRootEnabled;
 
   if (entityRootDisabled) {
@@ -17,14 +19,13 @@ export const useRuntimeEntity = <T>(
   }
 
   const isFunction = typeof entityArg === 'function';
-  const { current: prevEntityArg } = prevEntityArgRef;
 
   switch (true) {
     case isFunction:
-    case prevEntityArg === entityArg:
+    case !changed:
       return store.value;
   }
 
-  prevEntityArgRef.current = entityArg;
+  recordValue(entityArg);
   return entityArg;
 };

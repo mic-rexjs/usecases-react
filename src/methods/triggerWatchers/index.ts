@@ -1,21 +1,13 @@
-import { EntityWatchMap, EntityWatcher } from '../../hooks/useUseCase/types';
-import { compareProperty } from '../compareProperty';
+import { EntityWatcher, EntityWatchMap } from '../../hooks/useUseCase/types';
+import { MatchPropertyFailedResult } from '@/entities/matchPropertyFailedResult/types';
+import { valueUseCase } from '@/usecases/valueUseCase';
 
 export const triggerWatchers = <T>(watch: EntityWatchMap<T>, newEntity: T, oldEntity: T): void => {
+  const { matchProperty } = valueUseCase();
+
   for (const [fieldPath, watcher] of Object.entries(watch)) {
-    compareProperty(
-      oldEntity,
-      newEntity,
-      fieldPath,
-      <TOldValue, TNewValue>(oldValue: TOldValue, newValue: TNewValue, fieldPaths: string[]): void => {
-        (watcher as EntityWatcher<T>)({
-          fieldPaths,
-          newEntity,
-          oldEntity,
-          newValue,
-          oldValue,
-        });
-      },
-    );
+    matchProperty(oldEntity, newEntity, fieldPath, (result: MatchPropertyFailedResult<T>): void => {
+      (watcher as EntityWatcher<T>)(result);
+    });
   }
 };

@@ -1,6 +1,6 @@
 import * as path from 'path';
-import { Configuration } from 'webpack';
 import CopyWebpackPlugin from 'copy-webpack-plugin';
+import { Configuration } from 'webpack';
 
 const initConfig = (): Configuration => {
   const projectDir = path.resolve(__dirname, '../');

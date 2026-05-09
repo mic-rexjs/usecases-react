@@ -1,7 +1,8 @@
-import { useCreation, useLatest } from 'ahooks';
-import { Statuses } from '@/enums/Statuses';
+import { useReducers } from '../useReducers';
 import { CreateContextualItemFactory } from './types';
-import { cacheCall } from '@/methods/cacheCall';
+import { useCreation, useLatest, useMemoizedFn } from 'ahooks';
+import { Statuses } from '@/enums/Statuses';
+import { methodUseCase } from '@/usecases/methodUseCase';
 
 export const useContextualItem = <T>(
   contextItem: T | null,
@@ -10,16 +11,26 @@ export const useContextualItem = <T>(
   depsKey = 0,
 ): T => {
   const factoryRef = useLatest(createFactory);
+  const { cacheCall } = useReducers(methodUseCase);
 
-  const create = useCreation((): CreateContextualItemFactory<T> => {
+  const onCache = useMemoizedFn((): CreateContextualItemFactory<T> => {
+    const { current: currentFactory } = factoryRef;
+
     void depsKey;
 
-    return cacheCall(factoryRef.current, {
+    // 防止在以下 `onCreate()` 多次调用实际 `factory`
+    return cacheCall(currentFactory, {
       onCompare(): boolean {
         return true;
       },
     });
-  }, [depsKey, factoryRef]);
+  });
+
+  const onCreate = useCreation((): CreateContextualItemFactory<T> => {
+    void depsKey;
+
+    return onCache();
+  }, [depsKey, onCache]);
 
   return useCreation((): T => {
     const rootEnabled = (statuses & Statuses.RootEnabled) === Statuses.RootEnabled;
@@ -28,6 +39,6 @@ export const useContextualItem = <T>(
       return contextItem as T;
     }
 
-    return create();
-  }, [statuses, contextItem, create]);
+    return onCreate();
+  }, [statuses, contextItem, onCreate]);
 };

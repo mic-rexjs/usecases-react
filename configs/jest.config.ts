@@ -1,15 +1,19 @@
+import fs from 'fs';
 import path from 'path';
 import { Config } from 'jest';
 import { pathsToModuleNameMapper } from 'ts-jest';
-import { compilerOptions } from '../tsconfig.json';
 
 const initConfig = (): Config => {
-  const { baseUrl, paths } = compilerOptions;
+  const { compilerOptions }: typeof import('../tsconfig.json') = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname, '../tsconfig.json'), 'utf8'),
+  );
+
+  const { paths } = compilerOptions;
   const projectDir = path.resolve(__dirname, '../');
 
   return {
     testEnvironment: 'jest-environment-jsdom',
-    rootDir: path.resolve(projectDir, baseUrl),
+    rootDir: projectDir,
     displayName: 'test',
     cache: false,
     testRegex: '\\.test\\.tsx?',

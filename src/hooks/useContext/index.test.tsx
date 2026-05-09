@@ -1,10 +1,10 @@
-import { describe, expect, test } from '@jest/globals';
-import { renderHook } from '@testing-library/react';
 import { useContext } from '.';
+import { describe, expect, test } from '@jest/globals';
 import { Reducers } from '@mic-rexjs/usecases';
+import { renderHook } from '@testing-library/react';
+import { useContext as useReactContext } from 'react';
 import { ArgumentTypes } from '@/enums/ArgumentTypes';
 import { Context, ContextValue } from '@/usecases/contextUseCase/types';
-import { useContext as useReactContext } from 'react';
 
 type TestReducers = Reducers;
 

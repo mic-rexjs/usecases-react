@@ -1,23 +1,23 @@
+import { initEntityReducers } from '../../methods/initEntityReducers';
+import { useArgumentTypes } from '../useArgumentTypes';
+import { useConstantFn } from '../useConstantFn';
+import { useContext } from '../useContext';
+import { useContextualItem } from '../useContextualItem';
+import { useDepsKey } from '../useDepsKey';
+import { useEntity } from '../useEntity';
+import { useFullArguments } from '../useFullArguments';
+import { useIsRenderingRef } from '../useIsRenderingRef';
+import { useProvider } from '../useProvider';
+import { useReducers } from '../useReducers';
+import { useStatuses } from '../useStatuses';
+import { CoreCollection, UseCaseHook, UseCaseHookOptions, UseCaseHookParameters } from './types';
+import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
+import { ReducerMap, RestArguments } from '@mic-rexjs/usecases/es/types';
 import { useCreation, useLatest } from 'ahooks';
 import { useContext as useContextValue } from 'react';
-import { EntityReducers, EntityUseCase, Reducers, UseCase } from '@mic-rexjs/usecases';
-import { UseCaseHookOptions, UseCaseHook, CoreCollection, UseCaseHookParameters } from './types';
-import { useConstantFn } from '../useConstantFn';
-import { useProvider } from '../useProvider';
-import { initEntityReducers } from '../../methods/initEntityReducers';
-import { useContext } from '../useContext';
-import { useIsRenderingRef } from '../useIsRenderingRef';
-import { useArgumentTypes } from '../useArgumentTypes';
-import { useStatuses } from '../useStatuses';
 import { Statuses } from '@/enums/Statuses';
-import { useEntity } from '../useEntity';
-import { useContextualItem } from '../useContextualItem';
-import { cacheCalls } from '@/methods/cacheCalls';
-import { useCompareDeps } from '../useCompareDeps';
-import { captureCalls } from '@/methods/captureCalls';
-import { ReducerMap, RestArguments } from '@mic-rexjs/usecases/es/types';
 import { ContextualEntityReducers, EntityContextValue } from '@/usecases/contextUseCase/types';
-import { useFullArguments } from '../useFullArguments';
+import { methodUseCase } from '@/usecases/methodUseCase';
 
 export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions extends object>(
   ...args: UseCaseHookParameters
@@ -34,10 +34,11 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
   const entityContextValue = contextValue as EntityContextValue<T, EntityReducers<T>> | null;
   const statuses = useStatuses(argumentTypes, contextValue);
   const optionsRef = useLatest(options);
-  const depsKey = useCompareDeps(deps);
+  const depsKey = useDepsKey(deps);
   const { reducers: contextReducers = null } = contextValue || {};
   const { store: contextStore = null } = entityContextValue || {};
   const [entity, store] = useEntity(statuses, unsafeEntity, contextStore, options, depsKey);
+  const { cacheCalls, captureCalls } = useReducers(methodUseCase);
 
   const reducers = useContextualItem(
     contextReducers,
@@ -88,5 +89,5 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
     }
 
     return [newEntity, cachedReducers];
-  }, [statuses, entity, reducers, Provider, isRenderingRef]);
+  }, [statuses, entity, reducers, Provider, isRenderingRef, cacheCalls]);
 }) as UseCaseHook;

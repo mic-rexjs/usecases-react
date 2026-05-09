@@ -1,18 +1,21 @@
+import { useUseCase } from '.';
+import { useDepsKey } from '../useDepsKey';
+import { EntityWatchEvent, RootCoreCollection } from './types';
+import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import {
-  objectUseCase,
   AsyncEntityGenerator,
   EntityGenerator,
   EntityReducers,
-  Reducers,
-  ObjectReducers,
   entityUseCase,
+  ObjectReducers,
+  objectUseCase,
+  Reducers,
 } from '@mic-rexjs/usecases';
-import { beforeEach, describe, expect, jest, test } from '@jest/globals';
-import { renderHook, act, render, fireEvent, screen } from '@testing-library/react';
-import { useUseCase } from '.';
+import { fireEvent, screen } from '@testing-library/dom';
+import { act, render, renderHook } from '@testing-library/react';
 import { useDeepCompareEffect, useMemoizedFn, useMount, useUpdate, useUpdateEffect } from 'ahooks';
 import { Dispatch, Fragment, useEffect, useMemo, useRef, useState } from 'react';
-import { EntityWatchEvent, RootCoreCollection } from './types';
+import { Dependencies } from '@/types';
 
 interface TestFieldPathData {
   list?: TestFile[];
@@ -260,8 +263,10 @@ const MathParent = ({ extraValue = 0, onUpdate }: MathParentProps): React.ReactE
   );
 };
 
-const useDeepCompareUpdate = (callback: VoidFunction, deps: unknown[]): void => {
+const useDeepCompareUpdate = (callback: VoidFunction, deps: Dependencies): void => {
   const isFirstRef = useRef(true);
+  const memoizedCallback = useMemoizedFn(callback);
+  const depsKey = useDepsKey(deps);
 
   useEffect((): VoidFunction => {
     return (): void => {
@@ -269,17 +274,13 @@ const useDeepCompareUpdate = (callback: VoidFunction, deps: unknown[]): void => 
     };
   });
 
-  useDeepCompareEffect.call(
-    null,
-    (): void => {
-      if (isFirstRef.current) {
-        return;
-      }
+  useDeepCompareEffect((): void => {
+    if (isFirstRef.current) {
+      return;
+    }
 
-      callback();
-    },
-    deps,
-  );
+    memoizedCallback();
+  }, [depsKey, memoizedCallback]);
 };
 
 beforeEach((): void => {
@@ -1162,8 +1163,8 @@ describe('useUseCase', (): void => {
 
     test('`options.watch` should work with array field path of array', (): void => {
       const initialData: TestFieldPathData = {};
-      const onExtChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, string>) => void>();
-      const onSizeChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
+      const onExtChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, string | undefined>) => void>();
+      const onSizeChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number | undefined>) => void>();
 
       const { result } = renderHook((): RootCoreCollection<TestFieldPathData, FiledPathReducers<TestFieldPathData>> => {
         return useUseCase(initialData, fieldPathUseCase, {
@@ -1408,8 +1409,8 @@ describe('useUseCase', (): void => {
     });
 
     test('`options.watch` should work with field path of array length', (): void => {
-      const onEntityLengthChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
-      const onListLengthChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
+      const onEntityLengthChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData[], number>) => void>();
+      const onListLengthChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData[], number | undefined>) => void>();
 
       const lengthUseCase = (): EntityReducers<TestFieldPathData[]> => {
         return entityUseCase();
@@ -1458,7 +1459,7 @@ describe('useUseCase', (): void => {
 
     test('`options.watch` should work with field path of nested array', (): void => {
       const initialData: TestFieldPathData = {};
-      const onChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number>) => void>();
+      const onChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData, number | undefined>) => void>();
 
       const { result } = renderHook((): RootCoreCollection<TestFieldPathData, EntityReducers<TestFieldPathData>> => {
         return useUseCase(initialData, fieldPathUseCase, {

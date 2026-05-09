@@ -1,15 +1,17 @@
-import { UseCase } from '@mic-rexjs/usecases';
 import { UseCaseProvider } from '../useProvider/types';
-import { ContextualEntityReducers } from '@/usecases/contextUseCase/types';
-
+import { UseCase } from '@mic-rexjs/usecases';
 import {
   EntityReducerMap,
   EntityReducers,
   InferableEntityUseCase,
   ReducerMap,
+  RestArguments,
   SymbolSet,
   SymbolSetTarget,
 } from '@mic-rexjs/usecases/es/types';
+import { MatchPropertyFailedResult } from '@/entities/matchPropertyFailedResult/types';
+import { Dependencies } from '@/types';
+import { ContextualEntityReducers } from '@/usecases/contextUseCase/types';
 
 export interface NonEntitySymbolSet extends SymbolSet {
   entity?: never;
@@ -34,17 +36,7 @@ export interface EntityGetter<T> {
   (entity?: T): T;
 }
 
-export interface EntityWatchEvent<T, TValue = unknown> {
-  fieldPaths: string[];
-
-  newEntity: T;
-
-  newValue: TValue;
-
-  oldEntity: T;
-
-  oldValue: TValue;
-}
+export interface EntityWatchEvent<T, TValue = unknown> extends MatchPropertyFailedResult<T, TValue> {}
 
 export interface EntityWatcher<T, TValue = unknown> {
   (event: EntityWatchEvent<T, TValue>): void;
@@ -66,7 +58,7 @@ export type PropertyPath<
   : never;
 
 export type DotAccessorFieldPath<T, TTemplate extends string> = TTemplate extends `${string}.${string}`
-  ? T extends unknown[]
+  ? T extends RestArguments
     ? '.length' | `${'' | `.${number}`}${DotAccessorFieldPath<T[number], NextPathTemplate<TTemplate>>}`
     : T extends object
       ? `.${PropertyPath<T, NextPathTemplate<TTemplate>>}`
@@ -74,7 +66,7 @@ export type DotAccessorFieldPath<T, TTemplate extends string> = TTemplate extend
   : '';
 
 export type FieldPath<T, TTemplate extends string = PathTemplate> = TTemplate extends `${string}.${string}`
-  ? T extends unknown[]
+  ? T extends RestArguments
     ? FieldPath<T[number], NextPathTemplate<TTemplate>> | 'length'
     : T extends object
       ? PropertyPath<T, TTemplate>
@@ -82,10 +74,10 @@ export type FieldPath<T, TTemplate extends string = PathTemplate> = TTemplate ex
   : never;
 
 export type ExtractPropertyType<T, TPath> = TPath extends `${infer TKey}.${infer TSubPath}`
-  ? T extends unknown[]
+  ? T extends RestArguments
     ? ExtractPropertyType<T[number], TKey extends `${number}` ? TSubPath : TPath>
     : ExtractPropertyType<T[TKey & keyof T], TSubPath>
-  : T extends unknown[]
+  : T extends RestArguments
     ? TPath extends 'length'
       ? T[TPath]
       : TPath extends `${number}`
@@ -127,7 +119,7 @@ export interface ReducersHook {
   <T extends ReducerMap, TUseCaseOptions extends object = object>(
     usecase: UseCase<T & SymbolSetTarget<NonEntitySymbolSet>, TUseCaseOptions>,
     options?: TUseCaseOptions,
-    deps?: unknown[],
+    deps?: Dependencies,
   ): T;
 }
 
@@ -135,7 +127,7 @@ export interface ContextualCoreCollectionHook {
   <T, TEntityReducers extends EntityReducerMap<T>>(
     usecase: InferableEntityUseCase<T, TEntityReducers>,
     options?: UseCaseHookContextualOptions<T>,
-    deps?: unknown[],
+    deps?: Dependencies,
   ): ContextualCoreCollection<T, TEntityReducers>;
 }
 
@@ -144,7 +136,7 @@ export interface RootCoreCollectionHook {
     entity: T | EntityGetter<T>,
     usecase: InferableEntityUseCase<T, TEntityReducers & EntityReducers<T>, TUseCaseOptions>,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
-    deps?: unknown[],
+    deps?: Dependencies,
   ): RootCoreCollection<T, EntityReducers<T, TEntityReducers>>;
 }
 

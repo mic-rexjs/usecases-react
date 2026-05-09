@@ -1,8 +1,9 @@
-import { UseCaseHookOptions, UseCaseHookParameters } from '@/hooks/useUseCase/types';
-import { EntityReducers, EntityUseCase, UseCase } from '@mic-rexjs/usecases';
 import { FullParameters } from './types';
-import { ArgumentTypes } from '@/enums/ArgumentTypes';
+import { EntityReducers, EntityUseCase, UseCase } from '@mic-rexjs/usecases';
 import { ReducerMap } from '@mic-rexjs/usecases/es/types';
+import { ArgumentTypes } from '@/enums/ArgumentTypes';
+import { UseCaseHookOptions, UseCaseHookParameters } from '@/hooks/useUseCase/types';
+import { Dependencies } from '@/types';
 
 export const useFullArguments = <T, TReducers extends ReducerMap, TUseCaseOptions extends object>(
   args: UseCaseHookParameters,
@@ -16,7 +17,7 @@ export const useFullArguments = <T, TReducers extends ReducerMap, TUseCaseOption
       null as T,
       arg1 as UseCase<TReducers> | EntityUseCase<T, TReducers & EntityReducers<T>>,
       (arg2 || {}) as TUseCaseOptions | UseCaseHookOptions<T, TUseCaseOptions>,
-      (arg3 || []) as unknown[],
+      (arg3 || []) as Dependencies,
     ];
   }
 
@@ -24,6 +25,6 @@ export const useFullArguments = <T, TReducers extends ReducerMap, TUseCaseOption
     arg1 as T,
     arg2 as EntityUseCase<T, TReducers & EntityReducers<T>>,
     (arg3 || {}) as UseCaseHookOptions<T, TUseCaseOptions>,
-    (arg4 || []) as unknown[],
+    (arg4 || []) as Dependencies,
   ];
 };

@@ -1,9 +1,9 @@
-import { createUseCase, EntityStore } from '@mic-rexjs/usecases';
 import { Context, ContextReducers, ContextReference, ContextUseCase, ContextValue } from './types';
-import { ArgumentTypes } from '@/enums/ArgumentTypes';
-import { createContext } from 'react';
-import { Statuses } from '@/enums/Statuses';
+import { createUseCase, EntityStore } from '@mic-rexjs/usecases';
 import { InferableUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
+import { createContext } from 'react';
+import { ArgumentTypes } from '@/enums/ArgumentTypes';
+import { Statuses } from '@/enums/Statuses';
 
 export const contextUseCase = createUseCase((): ContextUseCase => {
   const referenceMap = new Map();

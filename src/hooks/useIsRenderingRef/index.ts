@@ -1,9 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useLatest } from 'ahooks';
+import { useEffect } from 'react';
 
 export const useIsRenderingRef = (): React.MutableRefObject<boolean> => {
-  const ref = useRef(true);
-
-  ref.current = true;
+  const ref = useLatest(true);
 
   useEffect((): void => {
     ref.current = false;

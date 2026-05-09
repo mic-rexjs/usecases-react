@@ -1,9 +1,9 @@
-import { ArgumentTypes } from '@/enums/ArgumentTypes';
-import { Statuses } from '@/enums/Statuses';
-import { ContextValue, EntityContextValue } from '@/usecases/contextUseCase/types';
 import { EntityReducers } from '@mic-rexjs/usecases';
 import { ReducerMap } from '@mic-rexjs/usecases/es/types';
 import { useCreation } from 'ahooks';
+import { ArgumentTypes } from '@/enums/ArgumentTypes';
+import { Statuses } from '@/enums/Statuses';
+import { ContextValue, EntityContextValue } from '@/usecases/contextUseCase/types';
 
 export const useStatuses = <T extends ReducerMap>(
   argumentTypes: ArgumentTypes,

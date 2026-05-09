@@ -1,8 +1,8 @@
-import { Fragment } from 'react';
-import { SafeUseCaseFragmentProps } from './types';
 import { useUseCase } from '../../hooks/useUseCase';
+import { SafeUseCaseFragmentProps } from './types';
 import { EntityReducerMap } from '@mic-rexjs/usecases/es/types';
 import { useMount } from 'ahooks';
+import { Fragment } from 'react';
 
 export const SafeUseCaseFragment = <T, TEntityReducers extends EntityReducerMap<T>>({
   usecase,
