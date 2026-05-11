@@ -1,3 +1,4 @@
+import { useConstantEntityReducers } from '../useConstantEntityReducers';
 import { useContextualItem } from '../useContextualItem';
 import { useRuntimeEntity } from '../useRuntimeEntity';
 import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
@@ -6,17 +7,20 @@ import { useCreation, useLatest, useMemoizedFn, useUpdate } from 'ahooks';
 import { useEffect, useRef } from 'react';
 import { Statuses } from '@/enums/Statuses';
 import { triggerWatchers } from '@/methods/triggerWatchers';
+import { Dependencies } from '@/types';
+import { valueUseCase } from '@/usecases/valueUseCase';
 
 export const useEntity = <
   T,
   TUseCaseOptions extends object,
   TOptions extends UseCaseHookOptions<T, TUseCaseOptions> = UseCaseHookOptions<T, TUseCaseOptions>,
+  TDependencies extends Dependencies = Dependencies,
 >(
   statuses: Statuses,
-  entityArg: T | EntityGetter<T>,
+  entityArg: T | EntityGetter<T, TDependencies>,
   contextStore: EntityStore<T> | null,
   options: TOptions,
-  depsKey: number,
+  deps: TDependencies,
 ): [entity: T, store: EntityStore<T>] => {
   const update = useUpdate();
   const storeRef = useRef<EntityStore<T>>(null);
@@ -24,6 +28,7 @@ export const useEntity = <
   const contextEntity = (contextStore ? contextStore.value : null) as T;
   const entityEnabled = (statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled;
   const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
+  const { recordValueDiff } = useConstantEntityReducers(deps, valueUseCase<Dependencies>);
 
   const store = useContextualItem(
     contextStore,
@@ -33,7 +38,13 @@ export const useEntity = <
 
       if (entityRootEnabled) {
         const isFunction = typeof entityArg === 'function';
-        const initailEntity = isFunction ? (entityArg as EntityGetter<T>)(storeRef.current?.value) : entityArg;
+        const { current } = storeRef;
+        const { value } = current || {};
+        const [, depsDiff] = recordValueDiff(deps);
+
+        const initailEntity = isFunction
+          ? (entityArg as EntityGetter<T, TDependencies>)(value, depsDiff as TDependencies)
+          : entityArg;
 
         newStore = new EntityStore(initailEntity);
       } else {
@@ -43,7 +54,7 @@ export const useEntity = <
       storeRef.current = newStore;
       return newStore;
     },
-    depsKey,
+    deps,
   );
 
   const runtimeEntity = useRuntimeEntity(store, entityArg, contextEntity, statuses);

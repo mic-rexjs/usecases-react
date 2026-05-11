@@ -5,12 +5,16 @@ export interface MatchPropertyFailedCallback<T> {
   (result: MatchPropertyFailedResult<T>): void;
 }
 
+export interface MatchValueFailedCallback<T> {
+  <K extends keyof T>(key: K, newValue: T[K], oldValue: T[K]): void;
+}
+
 export type ValueReducers<T> = EntityReducers<
   T,
   {
     isValueChanged<S extends T>(entity: S, value: S): boolean;
 
-    isValueMatched<S extends T>(entity: S, value: S): boolean;
+    isValueMatched<S extends T>(entity: S, value: S, onMatchFailed?: MatchValueFailedCallback<S>): boolean;
 
     matchProperty<S extends T>(
       entity: S,
@@ -20,6 +24,8 @@ export type ValueReducers<T> = EntityReducers<
     ): boolean;
 
     recordValue<S extends T>(entity: S, value: S): EntityGenerator<S, boolean>;
+
+    recordValueDiff<S extends T>(entity: S, value: S): EntityGenerator<S, Partial<S>>;
 
     recordValueMatch<S extends T>(entity: S, value: S): EntityGenerator<S, boolean>;
 

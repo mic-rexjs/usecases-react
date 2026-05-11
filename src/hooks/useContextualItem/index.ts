@@ -1,17 +1,20 @@
-import { useReducers } from '../useReducers';
+import { useConstantReducers } from '../useConstantReducers';
+import { useDepsKey } from '../useDepsKey';
 import { CreateContextualItemFactory } from './types';
 import { useCreation, useLatest, useMemoizedFn } from 'ahooks';
 import { Statuses } from '@/enums/Statuses';
+import { Dependencies } from '@/types';
 import { methodUseCase } from '@/usecases/methodUseCase';
 
 export const useContextualItem = <T>(
   contextItem: T | null,
   statuses: Statuses,
   createFactory: CreateContextualItemFactory<T>,
-  depsKey = 0,
+  deps: Dependencies = [],
 ): T => {
+  const depsKey = useDepsKey(deps);
   const factoryRef = useLatest(createFactory);
-  const { cacheCall } = useReducers(methodUseCase);
+  const { cacheCall } = useConstantReducers(methodUseCase);
 
   const onCache = useMemoizedFn((): CreateContextualItemFactory<T> => {
     const { current: currentFactory } = factoryRef;

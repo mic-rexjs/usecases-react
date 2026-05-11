@@ -5,12 +5,8 @@ import {
   ScopedEntityReducers,
 } from '@mic-rexjs/usecases/es/methods/createEntityReducers/types';
 import { EntityReducerMap, EntityReducers, InferableEntityUseCase } from '@mic-rexjs/usecases/es/types';
-import { useCreation, useMemoizedFn } from 'ahooks';
-import { Dependencies } from '@/types';
-import { valueUseCase } from '@/usecases/valueUseCase';
-import { ValueReducers } from '@/usecases/valueUseCase/types';
 
-export const useEntityReducers = <
+export const useConstantEntityReducers = <
   T,
   TEntityReducers extends EntityReducerMap<T>,
   TUseCaseOptions extends object = object,
@@ -18,22 +14,8 @@ export const useEntityReducers = <
   initailEntity: T,
   usecase: InferableEntityUseCase<T, TEntityReducers & EntityReducers<T>, TUseCaseOptions>,
   options?: CreateEntityReducersOptions<T, TUseCaseOptions>,
-  deps: Dependencies = [],
 ): ScopedEntityReducers<T, EntityReducers<T, TEntityReducers>> => {
-  const { recordValueMatchWith } = useConstant((): ScopedEntityReducers<Dependencies, ValueReducers<Dependencies>> => {
-    return createEntityReducers(deps, valueUseCase);
-  });
-
-  const [, depsKey] = recordValueMatchWith(deps);
-
-  const onCreate = useMemoizedFn((): ScopedEntityReducers<T, TEntityReducers> => {
+  return useConstant((): ScopedEntityReducers<T, TEntityReducers> => {
     return createEntityReducers(initailEntity, usecase, options);
   });
-
-  return useCreation((): ScopedEntityReducers<T, TEntityReducers> => {
-    void depsKey;
-    void usecase;
-
-    return onCreate();
-  }, [depsKey, usecase, onCreate]);
 };

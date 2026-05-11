@@ -376,6 +376,100 @@ describe('useUseCase', (): void => {
       expect(currentFile).toEqual(file);
     });
 
+    test('Entity getter should provide the current entity', (): void => {
+      let updateIndex = 0;
+      const file = defaultFile;
+      const onFile = jest.fn<(currentFile: TestFile | undefined) => void>();
+
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(
+          (currentFile: TestFile | undefined): TestFile => {
+            onFile(currentFile);
+            return currentFile ?? file;
+          },
+          fileUseCase,
+          {},
+          [updateIndex++],
+        );
+      });
+
+      const {
+        current: [, { setPath: setPath1 }],
+      } = result;
+
+      expect(onFile).toHaveBeenCalledTimes(1);
+      expect(onFile).toHaveBeenCalledWith(void 0);
+
+      act((): void => {
+        setPath1(PATH_1);
+      });
+
+      const {
+        current: [, { setPath: setPath2 }],
+      } = result;
+
+      expect(onFile).toHaveBeenCalledTimes(2);
+      expect(onFile).toHaveBeenCalledWith({ ...file, ext: EXT_1, path: PATH_1 });
+
+      act((): void => {
+        setPath2(PATH_2);
+      });
+
+      expect(onFile).toHaveBeenCalledTimes(3);
+      expect(onFile).toHaveBeenCalledWith({ ...file, ext: EXT_2, path: PATH_2 });
+    });
+
+    test('Entity getter should provide the changed deps', (): void => {
+      let updateIndex = 0;
+      const file = defaultFile;
+      const symbol = Symbol('changedDep');
+      const onChangedDeps = jest.fn<(filledDeps: Dependencies) => void>();
+
+      const { result } = renderHook((): RootCoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(
+          (currentFile = file, changedDeps): TestFile => {
+            // 验证参数类型
+            const [index1, num1, index2, string1, index3, boolean1] = changedDeps;
+
+            const a: number = index1;
+            const b: number = num1;
+            const c: number = index2;
+            const d: string = string1;
+            const e: number = index3;
+            const f: boolean = boolean1;
+
+            void a;
+            void b;
+            void c;
+            void d;
+            void e;
+            void f;
+
+            // 先 `fill` 填充，再合并，以 `symbol` 代替虚无项去匹配
+            onChangedDeps(Object.assign([...(changedDeps as Dependencies)].fill(symbol), changedDeps));
+            return currentFile;
+          },
+          fileUseCase,
+          {},
+          [updateIndex++, 0, updateIndex++, 'xyz', updateIndex++, false] as const,
+        );
+      });
+
+      const {
+        current: [, { setPath: setPath }],
+      } = result;
+
+      expect(onChangedDeps).toHaveBeenCalledTimes(1);
+      expect(onChangedDeps).toHaveBeenCalledWith([symbol, symbol, symbol, symbol, symbol, symbol]);
+
+      act((): void => {
+        setPath(PATH_1);
+      });
+
+      expect(onChangedDeps).toHaveBeenCalledTimes(2);
+      expect(onChangedDeps).toHaveBeenCalledWith([3, symbol, 4, symbol, 5, symbol]);
+    });
+
     test('Entity property getter should always return the same object if nothing changed after component update', (): void => {
       let updateTimes = 0;
 

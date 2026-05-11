@@ -1,4 +1,4 @@
-import { MatchPropertyFailedCallback, ValueReducers, ValueUseCase } from './types';
+import { MatchPropertyFailedCallback, MatchValueFailedCallback, ValueReducers, ValueUseCase } from './types';
 import { createUseCase, EntityGenerator, entityUseCase } from '@mic-rexjs/usecases';
 import { MatchPropertyFailedResult } from '@/entities/matchPropertyFailedResult/types';
 
@@ -21,7 +21,7 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
       return entity !== value;
     };
 
-    const isValueMatched = <S extends T>(entity: S, value: S): boolean => {
+    const isValueMatched = <S extends T>(entity: S, value: S, onMatchFailed?: MatchValueFailedCallback<S>): boolean => {
       if (entity === value) {
         return true;
       }
@@ -33,27 +33,47 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
         return false;
       }
 
+      let allMatched = true;
       const keys1 = Object.keys(entity);
       const keys2 = Object.keys(value);
       const { length: length1 } = keys1;
-      const { length: length2 } = keys2;
+      const keys = [...keys1, ...keys2];
+      const hasCallback = typeof onMatchFailed === 'function';
 
-      if (length1 !== length2) {
-        return false;
-      }
+      for (let i = 0, { length } = keys; i < length; i++) {
+        const key = keys[i];
+        const isFromKeys2 = i >= length1;
+        const isInKey1 = keys1.includes(key);
+        const isUsed = isFromKeys2 && isInKey1;
 
-      for (const key of keys1) {
-        const value1 = entity[key as keyof T];
-        const value2 = value[key as keyof T];
-
-        if (value1 === value2) {
+        if (isUsed) {
           continue;
         }
 
-        return false;
+        const hasField1 = Object.hasOwn(entity, key);
+        const hasField2 = Object.hasOwn(value, key);
+        const onlyHasField1 = hasField1 && !hasField2;
+        const onlyHasField2 = !hasField1 && hasField2;
+        const onlyHasOneField = onlyHasField1 || onlyHasField2;
+        const value1 = entity[key as keyof S];
+        const value2 = value[key as keyof S];
+        const matched = value1 === value2;
+
+        if (!onlyHasOneField && matched) {
+          continue;
+        }
+
+        allMatched = false;
+
+        if (hasCallback) {
+          onMatchFailed(key as keyof S, value2, value1);
+          continue;
+        }
+
+        break;
       }
 
-      return true;
+      return allMatched;
     };
 
     const matchProperty = <S extends T>(
@@ -144,6 +164,30 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
       return true;
     };
 
+    const recordValueDiff = function* <S extends T>(entity: S, value: S): EntityGenerator<S, Partial<S>> {
+      const isArray1 = Array.isArray(entity);
+      const isArray2 = Array.isArray(value);
+      const isArray = isArray1 && isArray2;
+      const result = (isArray ? [] : {}) as Partial<S>;
+
+      if (isArray) {
+        const { length: length1 } = entity;
+        const { length: length2 } = value;
+
+        (result as typeof entity).length = Math.max(length1, length2);
+      }
+
+      const matched = isValueMatched(entity, value, <K extends keyof S>(key: K, newValue: S[K]): void => {
+        result[key] = newValue;
+      });
+
+      if (!matched) {
+        yield value;
+      }
+
+      return result;
+    };
+
     const recordValueMatch = function* <S extends T>(entity: S, value: S): EntityGenerator<S, boolean> {
       const matched = isValueMatched(entity, value);
 
@@ -177,6 +221,7 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
       isValueMatched,
       matchProperty,
       recordValue,
+      recordValueDiff,
       recordValueMatch,
       recordValueMatchWith,
     };

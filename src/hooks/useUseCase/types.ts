@@ -32,8 +32,8 @@ export type CoreCollection<T, TEntityReducers extends EntityReducerMap<T>> =
   | RootCoreCollection<T, TEntityReducers>
   | ContextualCoreCollection<T, TEntityReducers>;
 
-export interface EntityGetter<T> {
-  (entity?: T): T;
+export interface EntityGetter<T, TDependencies extends Dependencies = Dependencies> {
+  (entity: T | undefined, changedDeps: TDependencies): T;
 }
 
 export interface EntityWatchEvent<T, TValue = unknown> extends MatchPropertyFailedResult<T, TValue> {}
@@ -132,11 +132,16 @@ export interface ContextualCoreCollectionHook {
 }
 
 export interface RootCoreCollectionHook {
-  <T, TEntityReducers extends EntityReducerMap<T>, TUseCaseOptions extends object = object>(
-    entity: T | EntityGetter<T>,
+  <
+    T,
+    TEntityReducers extends EntityReducerMap<T>,
+    TUseCaseOptions extends object = object,
+    TDependencies extends Dependencies = Dependencies,
+  >(
+    entity: T | EntityGetter<T, TDependencies>,
     usecase: InferableEntityUseCase<T, TEntityReducers & EntityReducers<T>, TUseCaseOptions>,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
-    deps?: Dependencies,
+    deps?: TDependencies,
   ): RootCoreCollection<T, EntityReducers<T, TEntityReducers>>;
 }
 
