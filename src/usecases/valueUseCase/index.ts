@@ -1,12 +1,11 @@
 import { MatchPropertyFailedCallback, MatchValueFailedCallback, ValueReducers, ValueUseCase } from './types';
-import { createUseCase, EntityGenerator, entityUseCase } from '@mic-rexjs/usecases';
+import { createUseCase, EntityGenerator, entityUseCase, utilsUseCase } from '@mic-rexjs/usecases';
 import { MatchPropertyFailedResult } from '@/entities/matchPropertyFailedResult/types';
 
 export const valueUseCase = createUseCase((): ValueUseCase => {
-  let keyIndex = 0;
-
   return <T>(): ValueReducers<T> => {
-    let prevKeyIndex = keyIndex++;
+    const { createKey } = utilsUseCase();
+    let prevKeyIndex: React.Key = createKey();
     const entityReducers = entityUseCase();
 
     const hasField = (entity: T, field: string): boolean => {
@@ -202,14 +201,12 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
     const recordValueMatchWith = function* <S extends T>(
       entity: S,
       value: S,
-      key = keyIndex + 1,
-    ): EntityGenerator<S, number> {
+      key?: React.Key,
+    ): EntityGenerator<S, React.Key> {
       const matched = yield* recordValueMatch(entity, value);
 
       if (!matched) {
-        // 不管是不是使用 `keyIndex` 生成的 `key`，都自增一次，如果是，则可以保持一致
-        keyIndex++;
-        prevKeyIndex = key;
+        prevKeyIndex = key ?? createKey();
       }
 
       return prevKeyIndex;

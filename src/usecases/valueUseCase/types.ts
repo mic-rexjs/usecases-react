@@ -1,4 +1,5 @@
 import { EntityGenerator, EntityReducers } from '@mic-rexjs/usecases';
+import React from 'react';
 import { MatchPropertyFailedResult } from '@/entities/matchPropertyFailedResult/types';
 
 export interface MatchPropertyFailedCallback<T> {
@@ -29,7 +30,7 @@ export type ValueReducers<T> = EntityReducers<
 
     recordValueMatch<S extends T>(entity: S, value: S): EntityGenerator<S, boolean>;
 
-    recordValueMatchWith<S extends T>(entity: S, value: S, key?: number): EntityGenerator<S, number>;
+    recordValueMatchWith<S extends T>(entity: S, value: S, key?: React.Key): EntityGenerator<S, React.Key>;
   }
 >;
 
