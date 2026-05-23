@@ -17,20 +17,24 @@ export interface NonEntitySymbolSet extends SymbolSet {
   entity?: never;
 }
 
-export type RootCoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = [
+export type CoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = [
   entity: T,
   reducers: ContextualEntityReducers<T, TEntityReducers>,
   Provider: UseCaseProvider,
 ];
 
-export type ContextualCoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = [
-  entity: T,
-  reducers: ContextualEntityReducers<T, TEntityReducers>,
-];
+/**
+ * @deprecated 请用 `CoreCollection` 代替
+ */
+export type RootCoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = CoreCollection<T, TEntityReducers>;
 
-export type CoreCollection<T, TEntityReducers extends EntityReducerMap<T>> =
-  | RootCoreCollection<T, TEntityReducers>
-  | ContextualCoreCollection<T, TEntityReducers>;
+/**
+ * @deprecated 请用 `CoreCollection` 代替
+ */
+export type ContextualCoreCollection<T, TEntityReducers extends EntityReducerMap<T>> = CoreCollection<
+  T,
+  TEntityReducers
+>;
 
 export interface EntityGetter<T, TDependencies extends Dependencies = Dependencies> {
   (entity: T | undefined, changedDeps: TDependencies): T;
@@ -128,7 +132,7 @@ export interface ContextualCoreCollectionHook {
     usecase: InferableEntityUseCase<T, TEntityReducers>,
     options?: UseCaseHookContextualOptions<T>,
     deps?: Dependencies,
-  ): ContextualCoreCollection<T, TEntityReducers>;
+  ): CoreCollection<T, TEntityReducers>;
 }
 
 export interface RootCoreCollectionHook {
@@ -142,7 +146,7 @@ export interface RootCoreCollectionHook {
     usecase: InferableEntityUseCase<T, TEntityReducers & EntityReducers<T>, TUseCaseOptions>,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
     deps?: TDependencies,
-  ): RootCoreCollection<T, EntityReducers<T, TEntityReducers>>;
+  ): CoreCollection<T, EntityReducers<T, TEntityReducers>>;
 }
 
 export interface CoreCollectionHook extends ContextualCoreCollectionHook, RootCoreCollectionHook {}

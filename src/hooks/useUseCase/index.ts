@@ -73,8 +73,6 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
       return reducers;
     }
 
-    const rootEnabled = (statuses & Statuses.RootEnabled) === Statuses.RootEnabled;
-
     const cachedReducers = cacheCalls(reducers as Reducers as ContextualEntityReducers<T, EntityReducers<T>>, {
       onShouldCache(): boolean {
         return isRenderingRef.current;
@@ -88,10 +86,6 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
     // 这里是为了让访问器 `getter` 的值保持唯一性，否则每次 `getter` 返回的对象都是新对象，无法用于 `deps`
     const newEntity = isObjectEntity ? { ...entity } : entity;
 
-    if (rootEnabled) {
-      return [newEntity, cachedReducers, Provider];
-    }
-
-    return [newEntity, cachedReducers];
+    return [newEntity, cachedReducers, Provider];
   }, [statuses, entity, reducers, Provider, isRenderingRef, cacheCalls]);
 }) as UseCaseHook;
