@@ -31,7 +31,7 @@ const initConfig = (): Configuration => {
           test: /\.js$/,
           loader: 'babel-loader',
           options: {
-            extends: path.resolve(configsDir, '.babelrc'),
+            extends: path.resolve(configsDir, 'babelconfig.json'),
           },
           exclude: /node_modules/,
         },

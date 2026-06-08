@@ -1,0 +1,15 @@
+{
+  "extends": "./babelconfig.json",
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "targets": {
+          "chrome": "67",
+          "ios": "14"
+        },
+        "modules": false
+      }
+    ]
+  ]
+}

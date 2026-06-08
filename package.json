@@ -1,6 +1,6 @@
 {
   "name": "@mic-rexjs/usecases-react",
-  "version": "2.12.0",
+  "version": "2.12.1",
   "description": "React-based solution for use usecases of Clean Architecture",
   "private": true,
   "sideEffects": false,
@@ -15,8 +15,10 @@
   "scripts": {
     "postinstall": "husky install",
     "build:dist": "webpack --config ./configs/webpack.config.ts",
-    "build:es": "tsc --project ./configs/tsconfig.es.json && tsc-alias -p ./configs/tsconfig.es.json",
-    "build:lib": "babel ./build/es --config-file ./configs/.babelrc  --out-dir build/lib",
+    "prebuild:es": "tsc --project ./configs/tsconfig.es.json",
+    "build:es": "babel ./build/es --config-file ./configs/babelconfig.es.json --out-dir build/es",
+    "postbuild:es": "tsc-alias -p ./configs/tsconfig.es.json",
+    "build:lib": "babel ./build/es --config-file ./configs/babelconfig.lib.json --out-dir build/lib",
     "prebuild": "yarn run test && rimraf ./build",
     "build": "yarn run build:es && yarn run build:lib && yarn run build:dist",
     "pub:build": "yarn run build && npm publish ./build",
@@ -46,7 +48,7 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@mic-rexjs/usecases": "^2.14.2",
+    "@mic-rexjs/usecases": "^2.15.3",
     "react": ">=16.8.0"
   },
   "dependencies": {
@@ -65,7 +67,7 @@
     "@eslint/js": "^10.0.1",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@jest/globals": "^30.3.0",
-    "@mic-rexjs/usecases": "^2.15.2",
+    "@mic-rexjs/usecases": "^2.15.3",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.6.0",
