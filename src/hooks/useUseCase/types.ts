@@ -37,7 +37,7 @@ export type ContextualCoreCollection<T, TEntityReducers extends EntityReducerMap
 >;
 
 export interface EntityGetter<T, TDependencies extends Dependencies = Dependencies> {
-  (entity: T | undefined, changedDeps: TDependencies): T;
+  (entity: T | undefined, changedDeps: Partial<TDependencies>): T;
 }
 
 export interface EntityWatchEvent<T, TValue = unknown> extends MatchPropertyFailedResult<T, TValue> {}

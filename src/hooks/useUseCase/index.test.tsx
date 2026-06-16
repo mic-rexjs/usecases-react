@@ -432,12 +432,12 @@ describe('useUseCase', (): void => {
             // 验证参数类型
             const [index1, num1, index2, string1, index3, boolean1] = changedDeps;
 
-            const a: number = index1;
-            const b: number = num1;
-            const c: number = index2;
-            const d: string = string1;
-            const e: number = index3;
-            const f: boolean = boolean1;
+            const a: number | undefined = index1;
+            const b: number | undefined = num1;
+            const c: number | undefined = index2;
+            const d: string | undefined = string1;
+            const e: number | undefined = index3;
+            const f: boolean | undefined = boolean1;
 
             void a;
             void b;
