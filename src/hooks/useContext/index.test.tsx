@@ -4,11 +4,11 @@ import { Reducers } from '@mic-rexjs/usecases';
 import { renderHook } from '@testing-library/react';
 import { useContext as useReactContext } from 'react';
 import { ArgumentTypes } from '@/enums/ArgumentTypes';
-import { Context, ContextValue } from '@/usecases/contextUseCase/types';
+import { UseCaseContext, UseCaseContextValue } from '@/usecases/contextUseCase/types';
 
 type TestReducers = Reducers;
 
-interface TestUseCaseContext extends Context<ContextValue<TestReducers>> {}
+interface TestUseCaseContext extends UseCaseContext<UseCaseContextValue<TestReducers>> {}
 
 const testUseCase = (): TestReducers => {
   return {};
@@ -16,7 +16,7 @@ const testUseCase = (): TestReducers => {
 
 describe('useContext', (): void => {
   test('should return the default context with value `null` if map has not saved a usecase with default args', (): void => {
-    const { result } = renderHook((): ContextValue<TestReducers> | null => {
+    const { result } = renderHook((): UseCaseContextValue<TestReducers> | null => {
       const context = useContext(testUseCase);
       const value = useReactContext(context);
 
@@ -29,7 +29,7 @@ describe('useContext', (): void => {
   });
 
   test('should return the default context with value `null` if map has not saved a usecase with `ArgumentTypes.None` & `UseCaseModes.Normal`', (): void => {
-    const { result } = renderHook((): ContextValue<TestReducers> | null => {
+    const { result } = renderHook((): UseCaseContextValue<TestReducers> | null => {
       const context = useContext(testUseCase, ArgumentTypes.None);
       const value = useReactContext(context);
 
@@ -42,7 +42,7 @@ describe('useContext', (): void => {
   });
 
   test('should return the default context with value `null` as unmount this hook', (): void => {
-    const { result: result1, unmount: unmount1 } = renderHook((): ContextValue<TestReducers> | null => {
+    const { result: result1, unmount: unmount1 } = renderHook((): UseCaseContextValue<TestReducers> | null => {
       const context = useContext(testUseCase, ArgumentTypes.None);
       const value = useReactContext(context);
 
@@ -55,7 +55,7 @@ describe('useContext', (): void => {
 
     unmount1();
 
-    const { result: result2 } = renderHook((): ContextValue<TestReducers> | null => {
+    const { result: result2 } = renderHook((): UseCaseContextValue<TestReducers> | null => {
       const context = useContext(testUseCase, ArgumentTypes.None);
       const value = useReactContext(context);
 

@@ -6,17 +6,17 @@ import { useCreation, useLatest } from 'ahooks';
 import React, { FC, ReactElement, ReactNode } from 'react';
 import { Statuses } from '@/enums/Statuses';
 import { contextUseCase } from '@/usecases/contextUseCase';
-import { Context, ContextValue } from '@/usecases/contextUseCase/types';
+import { UseCaseContext, UseCaseContextValue } from '@/usecases/contextUseCase/types';
 
 export const useProvider = <T, TReducers extends ReducerMap>(
   statuses: Statuses,
-  context: Context<ContextValue<TReducers>>,
+  context: UseCaseContext<UseCaseContextValue<TReducers>>,
   store: EntityStore<T>,
   reducers: TReducers,
 ): UseCaseProvider => {
   const { value: entity } = store;
 
-  const contextValue = useCreation((): ContextValue<TReducers> => {
+  const contextValue = useCreation((): UseCaseContextValue<TReducers> => {
     const { createContextValue } = contextUseCase();
 
     void entity;

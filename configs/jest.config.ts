@@ -25,6 +25,7 @@ const initConfig = (): Config => {
         },
       ],
     },
+    modulePathIgnorePatterns: ['<rootDir>/build/'],
     moduleNameMapper: pathsToModuleNameMapper(
       Object.fromEntries(
         Object.getOwnPropertyNames(paths).map((name: string): [string, string[]] => {

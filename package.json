@@ -1,6 +1,6 @@
 {
   "name": "@mic-rexjs/usecases-react",
-  "version": "2.12.2",
+  "version": "2.13.0",
   "description": "React-based solution for use usecases of Clean Architecture",
   "private": true,
   "sideEffects": false,
@@ -48,7 +48,7 @@
   },
   "license": "MIT",
   "peerDependencies": {
-    "@mic-rexjs/usecases": "^2.15.3",
+    "@mic-rexjs/usecases": "^3.0.2",
     "react": ">=16.8.0"
   },
   "dependencies": {
@@ -67,7 +67,7 @@
     "@eslint/js": "^10.0.1",
     "@ianvs/prettier-plugin-sort-imports": "^4.7.1",
     "@jest/globals": "^30.3.0",
-    "@mic-rexjs/usecases": "^2.15.3",
+    "@mic-rexjs/usecases": "^3.0.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.2",
     "@types/node": "^25.6.0",

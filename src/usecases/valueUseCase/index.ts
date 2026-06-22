@@ -4,9 +4,9 @@ import { MatchPropertyFailedResult } from '@/entities/matchPropertyFailedResult/
 
 export const valueUseCase = createUseCase((): ValueUseCase => {
   return <T>(): ValueReducers<T> => {
+    const entityReducers = entityUseCase();
     const { createKey } = utilsUseCase();
     let prevKeyIndex: React.Key = createKey();
-    const entityReducers = entityUseCase();
 
     const hasField = (entity: T, field: string): boolean => {
       if (typeof entity !== 'object' || entity === null) {

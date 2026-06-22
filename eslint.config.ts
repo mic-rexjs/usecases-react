@@ -47,7 +47,10 @@ export default defineConfig(
         // ❌ 不允许代码上下文中重复定义变量名
         '@typescript-eslint/no-shadow': 'error',
         // ⚠️ 不允许未使用的变量
-        '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true, caughtErrors: 'none' }],
+        '@typescript-eslint/no-unused-vars': [
+          'error',
+          { ignoreRestSiblings: true, caughtErrors: 'none', varsIgnorePattern: '^_' },
+        ],
         // ✅ 允许空的 `interface`，便于 `interface A extends B {}` 的写法
         '@typescript-eslint/no-empty-interface': 'off',
         '@typescript-eslint/no-empty-object-type': [

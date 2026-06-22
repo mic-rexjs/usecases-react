@@ -4,13 +4,13 @@ import { ReducerMap } from '@mic-rexjs/usecases/es/types';
 import { useUnmount } from 'ahooks';
 import { ArgumentTypes } from '@/enums/ArgumentTypes';
 import { contextUseCase } from '@/usecases/contextUseCase';
-import { Context, ContextValue } from '@/usecases/contextUseCase/types';
+import { UseCaseContext, UseCaseContextValue } from '@/usecases/contextUseCase/types';
 
 export const useContext = <T extends ReducerMap, TUseCaseOptions extends object>(
   usecase: UseCase<T, TUseCaseOptions>,
   argumentTypes = ArgumentTypes.None,
-): Context<ContextValue<T>> => {
-  const context = useConstant((): Context<ContextValue<T>> => {
+): UseCaseContext<UseCaseContextValue<T>> => {
+  const context = useConstant((): UseCaseContext<UseCaseContextValue<T>> => {
     const { registerUseCase } = contextUseCase();
 
     return registerUseCase(usecase, argumentTypes);

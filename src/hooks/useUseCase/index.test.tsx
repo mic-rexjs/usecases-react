@@ -3,12 +3,11 @@ import { useDepsKey } from '../useDepsKey';
 import { CoreCollection, EntityWatchEvent } from './types';
 import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import {
+  AsyncEntityCallbackGenerator,
   AsyncEntityGenerator,
   EntityGenerator,
   EntityReducers,
   entityUseCase,
-  ObjectReducers,
-  objectUseCase,
   Reducers,
 } from '@mic-rexjs/usecases';
 import { fireEvent, screen } from '@testing-library/dom';
@@ -44,8 +43,7 @@ type TestReducers<T extends TestFile> = EntityReducers<
     readFile<S extends T>(entity: S, path: string): AsyncEntityGenerator<S, number>;
 
     isImage(entity: T): boolean;
-  },
-  ObjectReducers<T>
+  }
 >;
 
 interface MathUseCaseOptions {
@@ -111,7 +109,7 @@ const defaultFile: TestFile = {
 };
 
 const fileUseCase = <T extends TestFile>(options: FileUseCaseOptions = {}): TestReducers<T> => {
-  const entityReducers = objectUseCase<T>();
+  const entityReducers = entityUseCase<T>();
   const { pathPrefix = '', onPathChange } = options;
 
   const init = function* <S extends T>(entity: S, newEntity = defaultFile as S): EntityGenerator<S, void> {
@@ -173,7 +171,7 @@ const mathUseCase = (options: MathUseCaseOptions = {}): MathReducers => {
 };
 
 const fieldPathUseCase = <T extends TestFieldPathData>(): FiledPathReducers<T> => {
-  return objectUseCase();
+  return entityUseCase();
 };
 
 const Child = ({ textPrefix = '', onUpdate, onPathChange, onUndefinedEntity }: ChildProps): React.ReactElement => {
@@ -361,7 +359,7 @@ describe('useUseCase', (): void => {
       expect(result.current[0]).toEqual({ ...defaultFile, path: PATH_2 });
     });
 
-    test('Should support entity getter', (): void => {
+    test('Should support entity initializer', (): void => {
       const file = defaultFile;
 
       const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
@@ -377,7 +375,99 @@ describe('useUseCase', (): void => {
       expect(currentFile).toEqual(file);
     });
 
-    test('Entity getter should provide the current entity', (): void => {
+    test('Should support entity initializer with generator', (): void => {
+      const file = defaultFile;
+      const onChange = jest.fn();
+
+      const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(
+          function* (currentFile: TestFile = defaultFile): EntityGenerator<TestFile, void> {
+            yield {
+              ...currentFile,
+              size: 5000,
+            };
+          },
+          fileUseCase,
+          { onChange },
+        );
+      });
+
+      const {
+        current: [currentFile],
+      } = result;
+
+      expect(currentFile).toEqual({ ...file, size: 5000 });
+      expect(onChange).toHaveBeenCalledTimes(0);
+    });
+
+    test('Should support entity initializer with async callback generator', async (): Promise<void> => {
+      const file = defaultFile;
+      const onChange = jest.fn();
+      const onUpate = jest.fn();
+      const { promise, resolve } = Promise.withResolvers<void>();
+
+      const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        useEffect((): void => {
+          onUpate();
+        });
+
+        return useUseCase(
+          function* (entity: TestFile = defaultFile): AsyncEntityCallbackGenerator<TestFile, void> {
+            const newEntity1 = yield {
+              ...entity,
+              size: 1,
+            };
+
+            // 在异步之前，就算多次 `yield`，也不会触发 `onChange`
+            yield {
+              ...newEntity1,
+              size: newEntity1.size + 1,
+            };
+
+            const newEntity2 = yield async (currentEntity: TestFile): Promise<TestFile> => {
+              await promise;
+
+              return {
+                ...currentEntity,
+                size: currentEntity.size + 1,
+              };
+            };
+
+            yield {
+              ...newEntity2,
+              size: newEntity2.size + 1,
+            };
+          },
+          fileUseCase,
+          { onChange },
+        );
+      });
+
+      const {
+        current: [currentFile1],
+      } = result;
+
+      const newFile1 = { ...file, size: 2 };
+
+      expect(currentFile1).toEqual(newFile1);
+      expect(onChange).toHaveBeenCalledTimes(0);
+      expect(onUpate).toHaveBeenCalledTimes(1);
+
+      await act(async (): Promise<void> => {
+        resolve();
+        await promise;
+      });
+
+      const newFile2 = { ...file, size: 3 };
+      const newFile3 = { ...file, size: 4 };
+
+      expect(onChange).toHaveBeenCalledTimes(2);
+      expect(onUpate).toHaveBeenCalledTimes(2);
+      expect(onChange).toHaveBeenNthCalledWith(1, newFile2, newFile1);
+      expect(onChange).toHaveBeenNthCalledWith(2, newFile3, newFile2);
+    });
+
+    test('Entity initializer should provide the current entity', (): void => {
       let updateIndex = 0;
       const file = defaultFile;
       const onFile = jest.fn<(currentFile: TestFile | undefined) => void>();
@@ -420,7 +510,7 @@ describe('useUseCase', (): void => {
       expect(onFile).toHaveBeenCalledWith({ ...file, ext: EXT_2, path: PATH_2 });
     });
 
-    test('Entity getter should provide the changed deps', (): void => {
+    test('Entity initializer should provide the changed deps', (): void => {
       let updateIndex = 0;
       const file = defaultFile;
       const symbol = Symbol('changedDep');
@@ -481,8 +571,8 @@ describe('useUseCase', (): void => {
         },
       };
 
-      const { rerender } = renderHook((): CoreCollection<typeof data, ObjectReducers<typeof data>> => {
-        const collection = useUseCase(data, objectUseCase);
+      const { rerender } = renderHook((): CoreCollection<typeof data, EntityReducers<typeof data>> => {
+        const collection = useUseCase(data, entityUseCase<typeof data>);
         const [{ obj }] = collection;
 
         useMemo((): void => {
@@ -512,8 +602,8 @@ describe('useUseCase', (): void => {
         },
       };
 
-      const { result } = renderHook((): CoreCollection<typeof data, ObjectReducers<typeof data>> => {
-        const collection = useUseCase(data, objectUseCase);
+      const { result } = renderHook((): CoreCollection<typeof data, EntityReducers<typeof data>> => {
+        const collection = useUseCase(data, entityUseCase<typeof data>);
         const [{ obj }] = collection;
 
         useMemo((): void => {
@@ -536,7 +626,7 @@ describe('useUseCase', (): void => {
       expect(updateTimes).toEqual(2);
     });
 
-    test('Entity getter should provide the first argument with current entity when deps has change.', (): void => {
+    test('Entity initializer should provide the first argument with current entity when deps has change.', (): void => {
       let entityArg;
       let times = 0;
       const file = defaultFile;
@@ -1028,15 +1118,15 @@ describe('useUseCase', (): void => {
     });
 
     test('Option functions: use `T` (not `S`) when `S extends T`', (): void => {
-      const testObjectUseCase = <T extends TestFile>(options: DataOptions<T> = {}): ObjectReducers<T> => {
-        const objectReducers = objectUseCase();
+      const testUseCase = <T extends TestFile>(options: DataOptions<T> = {}): EntityReducers<T> => {
+        const entityReducers = entityUseCase();
 
         void options;
-        return { ...objectReducers };
+        return { ...entityReducers };
       };
 
       renderHook((): void => {
-        useUseCase(defaultFile, testObjectUseCase, {
+        useUseCase(defaultFile, testUseCase, {
           onUpdate(data: TestFile): Promise<TestFile> {
             void data;
             return Promise.reject();
@@ -1373,6 +1463,7 @@ describe('useUseCase', (): void => {
         fieldPaths: ['list', '0', 'ext'],
         newEntity: {
           list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+          nestedList: [],
         },
         oldEntity: {
           list: [
@@ -1389,6 +1480,7 @@ describe('useUseCase', (): void => {
         fieldPaths: ['list', '1', 'ext'],
         newEntity: {
           list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+          nestedList: [],
         },
         oldEntity: {
           list: [
@@ -1405,6 +1497,7 @@ describe('useUseCase', (): void => {
         fieldPaths: ['list', '2', 'ext'],
         newEntity: {
           list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+          nestedList: [],
         },
         oldEntity: {
           list: [
@@ -1421,6 +1514,7 @@ describe('useUseCase', (): void => {
         fieldPaths: ['list', '2', 'size'],
         newEntity: {
           list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
+          nestedList: [],
         },
         oldEntity: {
           list: [
@@ -1435,17 +1529,25 @@ describe('useUseCase', (): void => {
 
       act((): void => {
         setEntity((): TestFieldPathData => {
-          return {};
+          return {
+            list: [],
+          };
         });
       });
 
       expect(onExtChange).toHaveBeenCalledTimes(9);
       expect(onSizeChange).toHaveBeenCalledTimes(6);
 
+      const newEntity1 = {
+        list: [],
+        nestedList: [],
+      };
+
       expect(onExtChange).toHaveBeenNthCalledWith(7, {
         fieldPaths: ['list', '0', 'ext'],
-        newEntity: {},
+        newEntity: newEntity1,
         oldEntity: {
+          ...newEntity1,
           list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
         },
         newValue: void 0,
@@ -1454,8 +1556,9 @@ describe('useUseCase', (): void => {
 
       expect(onExtChange).toHaveBeenNthCalledWith(8, {
         fieldPaths: ['list', '1', 'ext'],
-        newEntity: {},
+        newEntity: newEntity1,
         oldEntity: {
+          ...newEntity1,
           list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
         },
         newValue: void 0,
@@ -1464,8 +1567,9 @@ describe('useUseCase', (): void => {
 
       expect(onExtChange).toHaveBeenNthCalledWith(9, {
         fieldPaths: ['list', '2', 'ext'],
-        newEntity: {},
+        newEntity: newEntity1,
         oldEntity: {
+          ...newEntity1,
           list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
         },
         newValue: void 0,
@@ -1474,8 +1578,9 @@ describe('useUseCase', (): void => {
 
       expect(onSizeChange).toHaveBeenNthCalledWith(4, {
         fieldPaths: ['list', '0', 'size'],
-        newEntity: {},
+        newEntity: newEntity1,
         oldEntity: {
+          ...newEntity1,
           list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
         },
         newValue: void 0,
@@ -1484,8 +1589,9 @@ describe('useUseCase', (): void => {
 
       expect(onSizeChange).toHaveBeenNthCalledWith(5, {
         fieldPaths: ['list', '1', 'size'],
-        newEntity: {},
+        newEntity: newEntity1,
         oldEntity: {
+          ...newEntity1,
           list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
         },
         newValue: void 0,
@@ -1494,8 +1600,9 @@ describe('useUseCase', (): void => {
 
       expect(onSizeChange).toHaveBeenNthCalledWith(6, {
         fieldPaths: ['list', '2', 'size'],
-        newEntity: {},
+        newEntity: newEntity1,
         oldEntity: {
+          ...newEntity1,
           list: [{ ...defaultFile, ext: EXT_2 }, { ...defaultFile, ext: EXT_1 }, defaultFile],
         },
         newValue: void 0,
@@ -1700,7 +1807,11 @@ describe('useUseCase', (): void => {
 
       act((): void => {
         setEntity((): TestFieldPathData => {
-          return {};
+          return {
+            obj: {
+              file: {},
+            },
+          };
         });
       });
 
@@ -1709,7 +1820,9 @@ describe('useUseCase', (): void => {
 
       expect(onExtChange).toHaveBeenCalledWith({
         fieldPaths: ['obj', 'file', 'ext'],
-        newEntity: {},
+        newEntity: {
+          obj: { file: {} },
+        },
         oldEntity: {
           obj: {
             file: {

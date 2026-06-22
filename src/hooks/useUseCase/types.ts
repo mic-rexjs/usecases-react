@@ -10,7 +10,7 @@ import {
   SymbolSetTarget,
 } from '@mic-rexjs/usecases/es/types';
 import { MatchPropertyFailedResult } from '@/entities/matchPropertyFailedResult/types';
-import { Dependencies } from '@/types';
+import { Dependencies, EntityInitializer } from '@/types';
 import { ContextualEntityReducers } from '@/usecases/contextUseCase/types';
 
 export interface NonEntitySymbolSet extends SymbolSet {
@@ -36,9 +36,10 @@ export type ContextualCoreCollection<T, TEntityReducers extends EntityReducerMap
   TEntityReducers
 >;
 
-export interface EntityGetter<T, TDependencies extends Dependencies = Dependencies> {
-  (entity: T | undefined, changedDeps: Partial<TDependencies>): T;
-}
+export interface EntityGetter<T, TDependencies extends Dependencies = Dependencies> extends EntityInitializer<
+  T,
+  TDependencies
+> {}
 
 export interface EntityWatchEvent<T, TValue = unknown> extends MatchPropertyFailedResult<T, TValue> {}
 
@@ -142,7 +143,7 @@ export interface RootCoreCollectionHook {
     TUseCaseOptions extends object = object,
     TDependencies extends Dependencies = Dependencies,
   >(
-    entity: T | EntityGetter<T, TDependencies>,
+    entity: T | EntityInitializer<T, TDependencies>,
     usecase: InferableEntityUseCase<T, TEntityReducers & EntityReducers<T>, TUseCaseOptions>,
     options?: UseCaseHookOptions<T, TUseCaseOptions>,
     deps?: TDependencies,

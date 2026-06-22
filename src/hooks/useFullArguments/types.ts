@@ -1,7 +1,7 @@
 import { EntityReducers, EntityUseCase, UseCase } from '@mic-rexjs/usecases';
 import { ReducerMap } from '@mic-rexjs/usecases/es/types';
-import { EntityGetter, UseCaseHookContextualOptions, UseCaseHookOptions } from '@/hooks/useUseCase/types';
-import { Dependencies } from '@/types';
+import { UseCaseHookContextualOptions, UseCaseHookOptions } from '@/hooks/useUseCase/types';
+import { Dependencies, EntityInitializer } from '@/types';
 
 export type FullParameters<
   T,
@@ -9,7 +9,7 @@ export type FullParameters<
   TUseCaseOptions extends object,
   TDependencies extends Dependencies = Dependencies,
 > = [
-  entity: T | EntityGetter<T, TDependencies>,
+  entity: T | EntityInitializer<T, TDependencies>,
   usecase: UseCase<TReducers, TUseCaseOptions> | EntityUseCase<T, TReducers & EntityReducers<T>, TUseCaseOptions>,
   options: TUseCaseOptions | UseCaseHookOptions<T, TUseCaseOptions> | UseCaseHookContextualOptions<T>,
   deps: TDependencies,

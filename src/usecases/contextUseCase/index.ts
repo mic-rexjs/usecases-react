@@ -1,4 +1,4 @@
-import { Context, ContextReducers, ContextReference, ContextUseCase, ContextValue } from './types';
+import { ContextReducers, ContextUseCase, UseCaseContext, UseCaseContextReference, UseCaseContextValue } from './types';
 import { createUseCase, EntityStore } from '@mic-rexjs/usecases';
 import { InferableUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
 import { createContext } from 'react';
@@ -14,13 +14,13 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
       store: EntityStore<T>,
       reducers: TReducers,
       statuses: Statuses,
-    ): ContextValue<TReducers> => {
+    ): UseCaseContextValue<TReducers> => {
       if ((statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled) {
         return {
           store,
           reducers,
           statuses,
-        } as ContextValue<TReducers>;
+        } as UseCaseContextValue<TReducers>;
       }
 
       return { reducers, statuses };
@@ -28,12 +28,12 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
 
     const getUseCaseContext = <T extends ReducerMap, TUseCaseOptions extends object>(
       usecase: InferableUseCase<T, TUseCaseOptions>,
-    ): Context<ContextValue<T>> => {
+    ): UseCaseContext<UseCaseContextValue<T>> => {
       if (!referenceMap.has(usecase)) {
-        return defaultUseCaseContext as Context<ContextValue<T>>;
+        return defaultUseCaseContext as UseCaseContext<UseCaseContextValue<T>>;
       }
 
-      const { value } = referenceMap.get(usecase) as ContextReference<ContextValue<T>>;
+      const { value } = referenceMap.get(usecase) as UseCaseContextReference<UseCaseContextValue<T>>;
 
       return value;
     };
@@ -41,9 +41,9 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
     const registerUseCase = <T extends ReducerMap, TUseCaseOptions extends object>(
       usecase: InferableUseCase<T, TUseCaseOptions>,
       argumentTypes: ArgumentTypes,
-    ): Context<ContextValue<T>> => {
+    ): UseCaseContext<UseCaseContextValue<T>> => {
       if (referenceMap.has(usecase)) {
-        const reference = referenceMap.get(usecase) as ContextReference<ContextValue<T>>;
+        const reference = referenceMap.get(usecase) as UseCaseContextReference<UseCaseContextValue<T>>;
         const { value, times } = reference;
 
         referenceMap.set(usecase, {
@@ -55,10 +55,10 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
       }
 
       if ((argumentTypes & ArgumentTypes.Entity) !== ArgumentTypes.Entity) {
-        return defaultUseCaseContext as Context<ContextValue<T>>;
+        return defaultUseCaseContext as UseCaseContext<UseCaseContextValue<T>>;
       }
 
-      const context = createContext(null) as Context<ContextValue<T>>;
+      const context = createContext(null) as UseCaseContext<UseCaseContextValue<T>>;
 
       referenceMap.set(usecase, {
         value: context,
@@ -80,7 +80,7 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
         return false;
       }
 
-      const reference = referenceMap.get(usecase) as ContextReference<ContextValue<T>>;
+      const reference = referenceMap.get(usecase) as UseCaseContextReference<UseCaseContextValue<T>>;
       const { value, times } = reference;
 
       if (times === 1) {

@@ -19,8 +19,6 @@ export const useContextualItem = <T>(
   const onCache = useMemoizedFn((): CreateContextualItemFactory<T> => {
     const { current: currentFactory } = factoryRef;
 
-    void depsKey;
-
     // 防止在以下 `onCreate()` 多次调用实际 `factory`
     return cacheCall(currentFactory, {
       onCompare(): boolean {

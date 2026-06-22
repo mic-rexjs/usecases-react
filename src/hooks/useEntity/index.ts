@@ -1,107 +1,37 @@
 import { useConstantEntityReducers } from '../useConstantEntityReducers';
-import { useContextualItem } from '../useContextualItem';
-import { useRuntimeEntity } from '../useRuntimeEntity';
-import { EntityGetter, UseCaseHookOptions } from '../useUseCase/types';
 import { EntityStore } from '@mic-rexjs/usecases';
-import { useCreation, useLatest, useMemoizedFn, useUpdate } from 'ahooks';
-import { useEffect, useRef } from 'react';
 import { Statuses } from '@/enums/Statuses';
-import { triggerWatchers } from '@/methods/triggerWatchers';
-import { Dependencies } from '@/types';
+import { Dependencies, EntityInitializer } from '@/types';
 import { valueUseCase } from '@/usecases/valueUseCase';
 
-export const useEntity = <
-  T,
-  TUseCaseOptions extends object,
-  TOptions extends UseCaseHookOptions<T, TUseCaseOptions> = UseCaseHookOptions<T, TUseCaseOptions>,
-  TDependencies extends Dependencies = Dependencies,
->(
+export const useEntity = <T, TDependencies extends Dependencies = Dependencies>(
+  store: EntityStore<T>,
+  entityArg: T | EntityInitializer<T, TDependencies>,
   statuses: Statuses,
-  entityArg: T | EntityGetter<T, TDependencies>,
-  contextStore: EntityStore<T> | null,
-  options: TOptions,
-  deps: TDependencies,
-): [entity: T, store: EntityStore<T>] => {
-  const update = useUpdate();
-  const storeRef = useRef<EntityStore<T>>(null);
-  const optionsRef = useLatest(options);
-  const contextEntity = (contextStore ? contextStore.value : null) as T;
-  const entityEnabled = (statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled;
-  const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
-  const { recordValueDiff } = useConstantEntityReducers(deps, valueUseCase<Dependencies>);
-
-  const store = useContextualItem(
-    contextStore,
-    statuses,
-    (): EntityStore<T> => {
-      let newStore: EntityStore<T>;
-
-      if (entityRootEnabled) {
-        const isFunction = typeof entityArg === 'function';
-        const { current } = storeRef;
-        const { value } = current || {};
-        const [, depsDiff] = recordValueDiff(deps);
-
-        const initailEntity = isFunction
-          ? (entityArg as EntityGetter<T, TDependencies>)(value, depsDiff as TDependencies)
-          : entityArg;
-
-        newStore = new EntityStore(initailEntity);
-      } else {
-        newStore = new EntityStore(null as T);
-      }
-
-      storeRef.current = newStore;
-      return newStore;
-    },
-    deps,
+): T => {
+  const { isValueChanged, recordValue } = useConstantEntityReducers(
+    entityArg,
+    valueUseCase<T | EntityInitializer<T, TDependencies>>,
   );
 
-  const runtimeEntity = useRuntimeEntity(store, entityArg, contextEntity, statuses);
+  const changed = isValueChanged(entityArg);
+  const entityRootDisabled = (statuses & Statuses.EntityRootEnabled) !== Statuses.EntityRootEnabled;
+  const isFunction = typeof entityArg === 'function';
+  const { value } = store;
 
-  const onEntityChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
-    const { onChange, watch } = optionsRef.current;
-
-    if (watch) {
-      triggerWatchers(watch, newEntity, oldEntity);
-    }
-
-    onChange?.(newEntity, oldEntity);
-
-    if (!entityRootEnabled) {
-      return;
-    }
-
-    update();
-  });
-
-  if (entityRootEnabled) {
-    // 执行同步操作
-    store.setValue(runtimeEntity, true);
+  switch (true) {
+    case entityRootDisabled:
+    case isFunction:
+    case !changed:
+      return value;
   }
 
-  /**
-   * 需要马上 `watch`，因为 `useEffect` 在子组件内优先执行，
-   * 如果使用了 `setEntity` 则无法监控到变化
-   */
-  useCreation((): void => {
-    if (!entityEnabled) {
-      return;
-    }
+  recordValue(entityArg);
 
-    store.watch(onEntityChange);
-  }, [entityEnabled, store, onEntityChange]);
+  store.disableWatchers();
+  // 执行同步操作
+  store.setValue(entityArg);
+  store.enableWatchers();
 
-  /**
-   * 在变化时候，组件更新前，使用 `unwatch`
-   */
-  useEffect((): VoidFunction => {
-    return (): void => {
-      store.unwatch(onEntityChange);
-    };
-  }, [entityEnabled, store, onEntityChange]);
-
-  return useCreation((): [entity: T, store: EntityStore<T>] => {
-    return [runtimeEntity, store];
-  }, [runtimeEntity, store]);
+  return entityArg;
 };

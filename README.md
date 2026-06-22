@@ -52,8 +52,6 @@ const MyComponent = (): React.ReactElement => {
 ```tsx
 // a.ts
 import {
-	objectUseCase,
-	ObjectReducers,
 	EntityGenerator,
 	EntityReducers
 } from '@mic-rexjs/usecases';
@@ -74,17 +72,10 @@ type FileReducers<T extends File> = EntityReducers<
     writeFile(entity: T, content: string): EntityGenerator<T, string>;
     isTxt(entity: T): boolean;
   },
-  // optional to extends an existed reducers
-  ObjectReducers<T>
 >;
 
 const fileUseCase = <T extends File>({ maxContentLength = 2000 }: FileUseCaseOptions = {}): FileReducers<T> => {
-  /**
-   * if you have not extends an existed reducers,
-   * you should call `entityUseCase` at here,
-   * such as `const entityReducers = entityUseCase<T>()`.
-   */
-  const objectReducers = objectUseCase<T>();
+  const entityReducers = entityUseCase<T>();
 
   const writeFile = function* (entity: T, content: string): EntityGenerator<T, string> {
     const { content: oldContent } = entity;
@@ -110,7 +101,7 @@ const fileUseCase = <T extends File>({ maxContentLength = 2000 }: FileUseCaseOpt
     return path.endsWith('.txt');
   };
 
-  return { ...objectReducers, writeFile, isTxt };
+  return { ...entityReducers, writeFile, isTxt };
 };
 
 // b.tsx
