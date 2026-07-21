@@ -8,7 +8,7 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
     const { createKey } = utilsUseCase();
     let prevKeyIndex: React.Key = createKey();
 
-    const hasField = (entity: T, field: string): boolean => {
+    const hasField = (entity: T, field: PropertyKey): boolean => {
       if (typeof entity !== 'object' || entity === null) {
         return false;
       }
@@ -101,15 +101,17 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
         const hasNewField = hasField(newValue as S, key);
 
         if (hasOldField || hasNewField) {
-          const subOldValue = hasOldField ? (oldValue as S)[key as keyof S] : void 0;
-          const subNewValue = hasNewField ? (newValue as S)[key as keyof S] : void 0;
+          const oldFieldDescriptor = Object.getOwnPropertyDescriptor(hasOldField ? oldValue : {}, key) || {};
+          const newFieldDescriptor = Object.getOwnPropertyDescriptor(hasNewField ? newValue : {}, key) || {};
+          const { value: oldSubValue, get: oldFieldGet, set: oldFieldSet } = oldFieldDescriptor;
+          const { value: newSubValue, get: newFieldGet, set: newFieldSet } = newFieldDescriptor;
 
           const result: MatchPropertyFailedResult<S> = {
             fieldPaths: [...fieldPaths, key],
             newEntity: value,
-            newValue: subNewValue,
+            newValue: newSubValue,
             oldEntity: entity,
-            oldValue: subOldValue,
+            oldValue: oldSubValue,
           };
 
           if (subFieldPath) {
@@ -119,7 +121,19 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
             continue;
           }
 
-          if (subOldValue === subNewValue) {
+          const hasOldFieldGet = typeof oldFieldGet === 'function';
+          const hasOldFieldSet = typeof oldFieldSet === 'function';
+          const hasNewFieldGet = typeof newFieldGet === 'function';
+          const hasNewFieldSet = typeof newFieldSet === 'function';
+          const hasOldFieldAccessor = hasOldFieldGet || hasOldFieldSet;
+          const hasNewFieldAccessor = hasNewFieldGet || hasNewFieldSet;
+
+          // 如果都是访问器
+          if (hasOldFieldAccessor && hasNewFieldAccessor) {
+            continue;
+          }
+
+          if (newSubValue === oldSubValue) {
             continue;
           }
 
