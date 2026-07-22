@@ -2,7 +2,7 @@ import { useConstantEntityReducers } from '../useConstantEntityReducers';
 import { useContextualItem } from '../useContextualItem';
 import { UseCaseHookOptions } from '../useUseCase/types';
 import { EntityReducers, EntityStore } from '@mic-rexjs/usecases';
-import { useCreation, useLatest, useMemoizedFn, useUpdate } from 'ahooks';
+import { useCreation, useLatest, useMemoizedFn, useUpdate, useUpdateEffect } from 'ahooks';
 import { useContext, useEffect, useRef } from 'react';
 import { Statuses } from '@/enums/Statuses';
 import { initStore } from '@/methods/initStore';
@@ -49,13 +49,25 @@ export const useStore = <
     deps,
   );
 
-  const onEntityChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
-    const { onChange, watch } = optionsRef.current;
+  const { value } = store;
+  const prevValueRef = useRef(value);
 
-    if (watch) {
-      triggerWatchers(watch, newEntity, oldEntity);
+  const onTriggerWatchers = useMemoizedFn((newEntity: T, oldEntity: T): void => {
+    const { watch } = optionsRef.current;
+
+    if (!watch) {
+      return;
     }
 
+    triggerWatchers(watch, newEntity, oldEntity);
+  });
+
+  const onEntityChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
+    const { onChange } = optionsRef.current;
+
+    prevValueRef.current = newEntity;
+
+    onTriggerWatchers(newEntity, oldEntity);
     onChange?.(newEntity, oldEntity);
 
     if (!entityRootEnabled) {
@@ -64,6 +76,25 @@ export const useStore = <
 
     update();
   });
+
+  const onValueChange = useMemoizedFn((): void => {
+    if (!entityRootEnabled) {
+      return;
+    }
+
+    const { current: prevValue } = prevValueRef;
+
+    if (value === prevValue) {
+      return;
+    }
+
+    prevValueRef.current = value;
+    onTriggerWatchers(value, prevValue as T);
+  });
+
+  useUpdateEffect((): void => {
+    onValueChange();
+  }, [value, onValueChange]);
 
   /**
    * 需要马上 `watch`，因为 `useEffect` 在子组件内优先执行，

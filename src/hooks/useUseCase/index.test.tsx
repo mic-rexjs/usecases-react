@@ -1295,6 +1295,56 @@ describe('useUseCase', (): void => {
       });
     });
 
+    test('`options.watch` should be trigger after update entity by entity setter', (): void => {
+      const onPathChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+
+      const { rerender } = renderHook((path: string = ''): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(
+          (currentFile = defaultFile): TestFile => {
+            return {
+              ...currentFile,
+              path,
+            };
+          },
+          fileUseCase,
+          {
+            watch: {
+              path: onPathChange,
+            },
+          },
+          [path],
+        );
+      });
+
+      expect(onPathChange).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        rerender(PATH_1);
+      });
+
+      expect(onPathChange).toHaveBeenCalledTimes(1);
+
+      expect(onPathChange).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, path: PATH_1 },
+        oldEntity: defaultFile,
+        newValue: PATH_1,
+        oldValue: '',
+      });
+
+      act((): void => {
+        rerender(PATH_2);
+      });
+
+      expect(onPathChange).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, path: PATH_2 },
+        oldEntity: { ...defaultFile, path: PATH_1 },
+        newValue: PATH_2,
+        oldValue: PATH_1,
+      });
+    });
+
     test('`options.watch` should trigger the latest one', (): void => {
       const onPathChange1 = jest.fn();
       const onPathChange2 = jest.fn();

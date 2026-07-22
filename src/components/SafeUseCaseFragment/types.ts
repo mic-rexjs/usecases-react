@@ -8,5 +8,7 @@ export interface SafeUseCaseFragmentProps<T, TEntityReducers extends EntityReduc
 
   onMount?(entity: T): void;
 
+  onUpdate?(entity: T): void;
+
   onChange?(newEntity: T, oldEntity: T): void;
 }
