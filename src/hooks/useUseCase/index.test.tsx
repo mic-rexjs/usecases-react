@@ -1295,7 +1295,7 @@ describe('useUseCase', (): void => {
       });
     });
 
-    test('`options.watch` should be trigger after update entity by entity setter', (): void => {
+    test('`options.watch` should be trigger after update entity by entity initializer', (): void => {
       const onPathChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
 
       const { rerender } = renderHook((path: string = ''): CoreCollection<TestFile, TestReducers<TestFile>> => {
