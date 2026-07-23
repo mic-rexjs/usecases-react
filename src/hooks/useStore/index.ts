@@ -78,7 +78,7 @@ export const useStore = <
   });
 
   const onValueChange = useMemoizedFn((): void => {
-    if (!entityRootEnabled) {
+    if (!entityEnabled) {
       return;
     }
 
@@ -91,10 +91,6 @@ export const useStore = <
     prevValueRef.current = value;
     onTriggerWatchers(value, prevValue as T);
   });
-
-  useUpdateEffect((): void => {
-    onValueChange();
-  }, [value, onValueChange]);
 
   /**
    * 需要马上 `watch`，因为 `useEffect` 在子组件内优先执行，
@@ -116,6 +112,10 @@ export const useStore = <
       store.unwatch(onEntityChange);
     };
   }, [entityEnabled, store, onEntityChange]);
+
+  useUpdateEffect((): void => {
+    onValueChange();
+  }, [value, onValueChange]);
 
   return store;
 };

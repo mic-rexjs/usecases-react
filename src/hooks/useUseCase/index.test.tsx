@@ -1345,6 +1345,72 @@ describe('useUseCase', (): void => {
       });
     });
 
+    test('`options.watch` should be trigger after update entity by entity initializer at child component', (): void => {
+      const onPathChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
+
+      const TestChild = (): React.ReactElement => {
+        useUseCase(fileUseCase, {
+          watch: {
+            path: onPathChange,
+          },
+        });
+
+        return <Fragment />;
+      };
+
+      const TestParent = ({ file }: Record<'file', TestFile>): React.ReactElement => {
+        const { path } = file;
+
+        const [, , Provider] = useUseCase(
+          (currentFile = defaultFile): TestFile => {
+            return {
+              ...currentFile,
+              path,
+            };
+          },
+          fileUseCase,
+          {},
+          [path],
+        );
+
+        return (
+          <Provider>
+            <TestChild />
+          </Provider>
+        );
+      };
+
+      const { rerender } = render(<TestParent file={{ ...defaultFile }} />);
+
+      expect(onPathChange).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        rerender(<TestParent file={{ ...defaultFile, path: PATH_1 }} />);
+      });
+
+      expect(onPathChange).toHaveBeenCalledTimes(1);
+
+      expect(onPathChange).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, path: PATH_1 },
+        oldEntity: defaultFile,
+        newValue: PATH_1,
+        oldValue: '',
+      });
+
+      act((): void => {
+        rerender(<TestParent file={{ ...defaultFile, path: PATH_2 }} />);
+      });
+
+      expect(onPathChange).toHaveBeenLastCalledWith({
+        fieldPaths: ['path'],
+        newEntity: { ...defaultFile, path: PATH_2 },
+        oldEntity: { ...defaultFile, path: PATH_1 },
+        newValue: PATH_2,
+        oldValue: PATH_1,
+      });
+    });
+
     test('`options.watch` should trigger the latest one', (): void => {
       const onPathChange1 = jest.fn();
       const onPathChange2 = jest.fn();
