@@ -95,16 +95,14 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
       ];
 
       do {
-        const { oldValue, newValue, fieldPaths } = list.shift() as MatchPropertyFailedResult<S>;
+        const { oldValue, newValue, fieldPaths } = list.shift() as MatchPropertyFailedResult<S, S>;
         const [, key = currentFieldPath, subFieldPath = ''] = currentFieldPath.match(/^([^.]+)\.(.+)$/) || [];
-        const hasOldField = hasField(oldValue as S, key);
-        const hasNewField = hasField(newValue as S, key);
+        const hasOldField = hasField(oldValue, key);
+        const hasNewField = hasField(newValue, key);
 
         if (hasOldField || hasNewField) {
-          const oldFieldDescriptor = Object.getOwnPropertyDescriptor(hasOldField ? oldValue : {}, key) || {};
-          const newFieldDescriptor = Object.getOwnPropertyDescriptor(hasNewField ? newValue : {}, key) || {};
-          const { value: oldSubValue, get: oldFieldGet, set: oldFieldSet } = oldFieldDescriptor;
-          const { value: newSubValue, get: newFieldGet, set: newFieldSet } = newFieldDescriptor;
+          const [oldSubValue] = hasOldField ? [oldValue[key as keyof S]] : [];
+          const [newSubValue] = hasNewField ? [newValue[key as keyof S]] : [];
 
           const result: MatchPropertyFailedResult<S> = {
             fieldPaths: [...fieldPaths, key],
@@ -118,18 +116,6 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
             currentFieldPath = subFieldPath;
 
             list.push(result);
-            continue;
-          }
-
-          const hasOldFieldGet = typeof oldFieldGet === 'function';
-          const hasOldFieldSet = typeof oldFieldSet === 'function';
-          const hasNewFieldGet = typeof newFieldGet === 'function';
-          const hasNewFieldSet = typeof newFieldSet === 'function';
-          const hasOldFieldAccessor = hasOldFieldGet || hasOldFieldSet;
-          const hasNewFieldAccessor = hasNewFieldGet || hasNewFieldSet;
-
-          // 如果都是访问器
-          if (hasOldFieldAccessor && hasNewFieldAccessor) {
             continue;
           }
 
