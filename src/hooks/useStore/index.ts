@@ -29,7 +29,7 @@ export const useStore = <
   const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
   const contextValue = useContext(context);
   const { store: contextStore = null } = contextValue || {};
-  const { recordValueDiff } = useConstantEntityReducers(deps, valueUseCase<Dependencies>);
+  const { recordValueDiff } = useConstantEntityReducers([], valueUseCase<Dependencies>);
 
   const store = useContextualItem(
     contextStore,

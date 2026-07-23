@@ -551,7 +551,7 @@ describe('useUseCase', (): void => {
       } = result;
 
       expect(onChangedDeps).toHaveBeenCalledTimes(1);
-      expect(onChangedDeps).toHaveBeenCalledWith([symbol, symbol, symbol, symbol, symbol, symbol]);
+      expect(onChangedDeps).toHaveBeenCalledWith([0, 0, 1, 'xyz', 2, false]);
 
       act((): void => {
         setPath(PATH_1);
