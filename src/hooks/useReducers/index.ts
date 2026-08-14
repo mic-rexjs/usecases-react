@@ -23,7 +23,7 @@ export const useReducers = <T, TReducers extends ReducerMap, TUseCaseOptions ext
   const { reducers: contextReducers = null } = contextValue || {};
   const { captureCalls } = useConstantReducers(methodUseCase);
 
-  return useContextualItem(
+  const reducers = useContextualItem(
     contextReducers,
     statuses,
     (): TReducers => {
@@ -52,4 +52,6 @@ export const useReducers = <T, TReducers extends ReducerMap, TUseCaseOptions ext
     },
     deps,
   );
+
+  return reducers;
 };

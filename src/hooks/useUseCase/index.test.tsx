@@ -1727,6 +1727,7 @@ describe('useUseCase', (): void => {
     });
 
     test('`options.watch` should work with field path of array length', (): void => {
+      const defaultList: TestFieldPathData[] = [];
       const onEntityLengthChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData[], number>) => void>();
       const onListLengthChange = jest.fn<(event: EntityWatchEvent<TestFieldPathData[], number | undefined>) => void>();
 
@@ -1735,7 +1736,7 @@ describe('useUseCase', (): void => {
       };
 
       const { result } = renderHook((): CoreCollection<TestFieldPathData[], EntityReducers<TestFieldPathData[]>> => {
-        return useUseCase([] as TestFieldPathData[], lengthUseCase, {
+        return useUseCase(defaultList, lengthUseCase, {
           watch: {
             length: onEntityLengthChange,
             'list.length': onListLengthChange,
