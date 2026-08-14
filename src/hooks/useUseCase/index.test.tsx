@@ -2001,6 +2001,62 @@ describe('useUseCase', (): void => {
       expect(onStringMount).toHaveBeenCalledWith('hello');
       expect(onBooleanMount).toHaveBeenCalledWith(true);
     });
+
+    test('`bindEntity` should be called when component mount', (): void => {
+      const bindEntity = jest.fn((entity: number): void => {
+        void entity;
+      });
+
+      const testUseCase = (): EntityReducers<number, Record<'bindEntity', typeof bindEntity>> => {
+        const entityReducers = entityUseCase();
+
+        return {
+          ...entityReducers,
+          bindEntity,
+        };
+      };
+
+      renderHook((): void => {
+        const [, { setEntity }] = useUseCase(5, testUseCase);
+
+        useMount((): void => {
+          setEntity(100);
+        });
+      });
+
+      expect(bindEntity).toHaveBeenCalledTimes(1);
+      expect(bindEntity).toHaveBeenCalledWith(5);
+    });
+
+    test('`unbindEntity` should be called when component unmount', (): void => {
+      const unbindEntity = jest.fn((entity: number): void => {
+        void entity;
+      });
+
+      const testUseCase = (): EntityReducers<number, Record<'unbindEntity', typeof unbindEntity>> => {
+        const entityReducers = entityUseCase();
+
+        return {
+          ...entityReducers,
+          unbindEntity,
+        };
+      };
+
+      const { unmount } = renderHook((): void => {
+        const [, { setEntity }] = useUseCase(5, testUseCase);
+
+        useMount((): void => {
+          setEntity(100);
+        });
+      });
+
+      expect(unbindEntity).toHaveBeenCalledTimes(0);
+
+      unmount();
+
+      expect(unbindEntity).toHaveBeenCalledTimes(1);
+      expect(unbindEntity).toHaveBeenCalledWith(100);
+    });
   });
 
   describe('`useUseCase` should work the same as `useContextualCoreCollection`', (): void => {

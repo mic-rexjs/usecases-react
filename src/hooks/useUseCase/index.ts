@@ -29,10 +29,10 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
   const context = useContext(usecase, argumentTypes);
   const entityContext = context as unknown as UseCaseContext<EntityUseCaseContextValue<T, EntityReducers<T>>>;
   const statuses = useStatuses(context, argumentTypes);
-  const store = useStore(entityContext, unsafeEntity, statuses, options, deps);
+  const store = useStore(unsafeEntity, entityContext, statuses, options, deps);
   const reducers = useReducers(usecase, context, store, statuses, options as TUseCaseOptions, deps);
+  const entity = useEntity(unsafeEntity, store, reducers, statuses, options);
   const Provider = useProvider(statuses, context, store, reducers);
-  const entity = useEntity(store, unsafeEntity, statuses, options);
 
   return useCreation(():
     | TReducers

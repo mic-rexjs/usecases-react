@@ -14,8 +14,8 @@ export const useStore = <
   TUseCaseOptions extends object,
   TOptions extends UseCaseHookOptions<T, TUseCaseOptions> = UseCaseHookOptions<T, TUseCaseOptions>,
 >(
-  context: UseCaseContext<EntityUseCaseContextValue<T, EntityReducers<T>>>,
   entityArg: T | EntityInitializer<T>,
+  context: UseCaseContext<EntityUseCaseContextValue<T, EntityReducers<T>>>,
   statuses: Statuses,
   options: TOptions,
   deps: Dependencies = [],

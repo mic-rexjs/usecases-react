@@ -2,7 +2,9 @@ import { useConstantEntityReducers } from '../useConstantEntityReducers';
 import { useExec } from '../useExec';
 import { UseCaseHookOptions } from '../useUseCase/types';
 import { EntityStore } from '@mic-rexjs/usecases';
-import { useLatest, useMemoizedFn, useUpdate, useUpdateEffect } from 'ahooks';
+import { ScopedEntityReducers } from '@mic-rexjs/usecases/es/methods/createEntityReducers/types';
+import { EntityReducerMap } from '@mic-rexjs/usecases/es/types';
+import { useLatest, useMemoizedFn, useUnmount, useUpdate, useUpdateEffect } from 'ahooks';
 import { useEffect, useRef } from 'react';
 import { Statuses } from '@/enums/Statuses';
 import { triggerWatchers } from '@/methods/triggerWatchers';
@@ -14,18 +16,21 @@ export const useEntity = <
   TUseCaseOptions extends object,
   TOptions extends UseCaseHookOptions<T, TUseCaseOptions> = UseCaseHookOptions<T, TUseCaseOptions>,
 >(
-  store: EntityStore<T>,
   entityArg: T | EntityInitializer<T>,
+  store: EntityStore<T>,
+  reducers: ScopedEntityReducers<T, EntityReducerMap<T>>,
   statuses: Statuses,
   options: TOptions,
 ): T => {
   const update = useUpdate();
   const isFunction = typeof entityArg === 'function';
   const { value: entity } = store;
+  const isFirstRef = useRef(true);
   const optionsRef = useLatest(options);
   const prevEntityRef = useRef(entity);
   const entityEnabled = (statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled;
   const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
+  const { bindEntity, unbindEntity } = reducers;
 
   const { isValueChanged, recordValue } = useConstantEntityReducers(
     entityArg,
@@ -73,18 +78,27 @@ export const useEntity = <
   });
 
   useExec((): void => {
+    let currentEntity = entityArg as T;
+    const { current: isFirst } = isFirstRef;
+
+    isFirstRef.current = false;
+
+    if (isFirst) {
+      currentEntity = (bindEntity?.() ?? currentEntity) as T;
+    }
+
     switch (true) {
       case !entityRootEnabled:
       case isFunction:
-      case !isValueChanged(entityArg):
+      case !isValueChanged(currentEntity):
         return;
     }
 
-    recordValue(entityArg);
+    recordValue(currentEntity);
 
     store.disableWatchers();
     // 执行同步操作
-    store.setValue(entityArg);
+    store.setValue(currentEntity);
     store.enableWatchers();
   });
 
@@ -108,6 +122,10 @@ export const useEntity = <
       store.unwatch(onEntityChange);
     };
   }, [entityEnabled, store, onEntityChange]);
+
+  useUnmount((): void => {
+    unbindEntity?.();
+  });
 
   useUpdateEffect((): void => {
     onValueChange();
