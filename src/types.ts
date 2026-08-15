@@ -7,3 +7,9 @@ export type InitEntityResult<T> = T | EntityGenerator<T, void> | AsyncEntityCall
 export interface EntityInitializer<T, TDependencies extends Dependencies = Dependencies> {
   (entity: T | undefined, changedDeps: Partial<TDependencies>): InitEntityResult<T>;
 }
+
+export interface EntityLifeCycles<T> {
+  bindEntity?<S extends T>(entity: S): S | void;
+
+  unbindEntity?(entity: T): void;
+}

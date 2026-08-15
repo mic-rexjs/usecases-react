@@ -1,6 +1,8 @@
 export { UseCaseFragment } from './components/UseCaseFragment';
 export { useUseCase } from './hooks/useUseCase';
 
+export type { EntityLifeCycles } from './types';
+
 export type {
   EntityWatchEvent,
   RootCoreCollection,
