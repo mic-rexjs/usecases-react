@@ -474,7 +474,7 @@ describe('useUseCase', (): void => {
 
       const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
         return useUseCase(
-          (currentFile: TestFile | undefined): TestFile => {
+          (currentFile?: TestFile): TestFile => {
             onFile(currentFile);
             return currentFile ?? file;
           },
@@ -510,55 +510,70 @@ describe('useUseCase', (): void => {
       expect(onFile).toHaveBeenCalledWith({ ...file, ext: EXT_2, path: PATH_2 });
     });
 
-    test('Entity initializer should provide the changed deps', (): void => {
+    test('Do not update entity when the initializer has yielded some constant entity properties', (): void => {
       let updateIndex = 0;
-      const file = defaultFile;
-      const symbol = Symbol('changedDep');
-      const onChangedDeps = jest.fn<(filledDeps: Dependencies) => void>();
 
       const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
         return useUseCase(
-          (currentFile = file, changedDeps): TestFile => {
-            // 验证参数类型
-            const [index1, num1, index2, string1, index3, boolean1] = changedDeps;
+          function* (): EntityGenerator<TestFile> {
+            yield defaultFile;
 
-            const a: number | undefined = index1;
-            const b: number | undefined = num1;
-            const c: number | undefined = index2;
-            const d: string | undefined = string1;
-            const e: number | undefined = index3;
-            const f: boolean | undefined = boolean1;
-
-            void a;
-            void b;
-            void c;
-            void d;
-            void e;
-            void f;
-
-            // 先 `fill` 填充，再合并，以 `symbol` 代替虚无项去匹配
-            onChangedDeps(Object.assign([...(changedDeps as Dependencies)].fill(symbol), changedDeps));
-            return currentFile;
+            yield {
+              path: PATH_1,
+            };
           },
           fileUseCase,
           {},
-          [updateIndex++, 0, updateIndex++, 'xyz', updateIndex++, false] as const,
+          [updateIndex++],
         );
       });
 
-      const {
-        current: [, { setPath: setPath }],
-      } = result;
+      const { current: current1 } = result;
+      const [entity1, { setEntity }] = current1;
 
-      expect(onChangedDeps).toHaveBeenCalledTimes(1);
-      expect(onChangedDeps).toHaveBeenCalledWith([0, 0, 1, 'xyz', 2, false]);
+      expect(entity1).toEqual({ ...defaultFile, path: PATH_1 });
 
       act((): void => {
-        setPath(PATH_1);
+        setEntity({ path: PATH_2 });
       });
 
-      expect(onChangedDeps).toHaveBeenCalledTimes(2);
-      expect(onChangedDeps).toHaveBeenCalledWith([3, symbol, 4, symbol, 5, symbol]);
+      const { current: current2 } = result;
+      const [entity2] = current2;
+
+      expect(entity2).toEqual({ ...defaultFile, path: PATH_2 });
+    });
+
+    test('Should update entity when the initializer has returned some cconstant entity properties after `setEntity`', (): void => {
+      let updateIndex = 0;
+
+      const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(
+          function* (): EntityGenerator<TestFile> {
+            yield defaultFile;
+
+            return {
+              path: PATH_1,
+            };
+          },
+          fileUseCase,
+          {},
+          [updateIndex++],
+        );
+      });
+
+      const { current: current1 } = result;
+      const [entity1, { setEntity }] = current1;
+
+      expect(entity1).toEqual({ ...defaultFile, path: PATH_1 });
+
+      act((): void => {
+        setEntity({ path: PATH_2 });
+      });
+
+      const { current: current2 } = result;
+      const [entity2] = current2;
+
+      expect(entity2).toEqual({ ...defaultFile, path: PATH_1 });
     });
 
     test('Entity property getter should always return the same object if nothing changed after component update', (): void => {

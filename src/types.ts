@@ -2,10 +2,10 @@ import { AsyncEntityCallbackGenerator, EntityGenerator, RestArguments } from '@m
 
 export interface Dependencies extends RestArguments {}
 
-export type InitEntityResult<T> = T | EntityGenerator<T, void> | AsyncEntityCallbackGenerator<T, void>;
+export type InitEntityResult<T> = T | EntityGenerator<T> | AsyncEntityCallbackGenerator<T>;
 
-export interface EntityInitializer<T, TDependencies extends Dependencies = Dependencies> {
-  (entity: T | undefined, changedDeps: Partial<TDependencies>): InitEntityResult<T>;
+export interface EntityInitializer<T> {
+  (entity: T | undefined): InitEntityResult<T>;
 }
 
 export interface EntityLifeCycles<T> {

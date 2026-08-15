@@ -1,12 +1,12 @@
-import { useConstantEntityReducers } from '../useConstantEntityReducers';
 import { useContextualItem } from '../useContextualItem';
 import { UseCaseHookOptions } from '../useUseCase/types';
-import { EntityReducers, EntityStore } from '@mic-rexjs/usecases';
+import { createEntity, createEntityReducers, EntityReducers, EntityStore } from '@mic-rexjs/usecases';
+import { EntityGeneratorValues } from '@mic-rexjs/usecases/es/types';
 import { useContext, useRef } from 'react';
 import { Statuses } from '@/enums/Statuses';
-import { initStore } from '@/methods/initStore';
-import { Dependencies, EntityInitializer } from '@/types';
+import { Dependencies, EntityInitializer, InitEntityResult } from '@/types';
 import { EntityUseCaseContextValue, UseCaseContext } from '@/usecases/contextUseCase/types';
+import { entityRuntimeUseCase } from '@/usecases/entityRuntimeUseCase';
 import { valueUseCase } from '@/usecases/valueUseCase';
 
 export const useStore = <
@@ -21,10 +21,61 @@ export const useStore = <
   deps: Dependencies = [],
 ): EntityStore<T> => {
   const storeRef = useRef<EntityStore<T>>(null);
+  const createEntityListRef = useRef<Partial<T>[]>([]);
   const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
   const contextValue = useContext(context);
   const { store: contextStore = null } = contextValue || {};
-  const { recordValueDiff } = useConstantEntityReducers([], valueUseCase<Dependencies>);
+
+  const initStore = (): EntityStore<T> => {
+    const isFunction = typeof entityArg === 'function';
+
+    if (!isFunction) {
+      return new EntityStore(entityArg);
+    }
+
+    let index = 0;
+    const { current: currentStore } = storeRef;
+    const { value: currentEntity } = currentStore || {};
+    const { current: prevCreateEntityList } = createEntityListRef;
+    const store = new EntityStore(currentEntity as T);
+    const createEntityList: Partial<T>[] = [];
+    const { diffValue } = valueUseCase();
+
+    const { initEntity } = createEntityReducers(store, entityRuntimeUseCase<T>, {
+      onInit(currentValue: T): InitEntityResult<T> {
+        return (entityArg as EntityInitializer<T>)(currentValue);
+      },
+      onCreate(newEntity: T, oldEntity: T): T {
+        const { [index]: prevEntity } = prevCreateEntityList;
+        const diffEntity = diffValue(prevEntity, newEntity) as T;
+
+        createEntityList[index] = newEntity;
+        index++;
+
+        return createEntity(oldEntity, diffEntity);
+      },
+      onGenerate(entity: T, result?: T): EntityGeneratorValues<T, T | undefined> {
+        if (typeof result === 'undefined') {
+          return [entity, result];
+        }
+
+        const newResult = createEntity<T>(entity, result);
+
+        store.value = newResult;
+        return [newResult, result];
+      },
+      onReturn(result: T): T {
+        store.value = result;
+        return result;
+      },
+    });
+
+    initEntity();
+
+    storeRef.current = store;
+    createEntityListRef.current = createEntityList;
+    return store;
+  };
 
   return useContextualItem(
     contextStore,
@@ -34,12 +85,7 @@ export const useStore = <
         return new EntityStore<T>(null as T);
       }
 
-      const { current } = storeRef;
-      const [, changedDeps] = recordValueDiff(deps);
-      const newStore = initStore(entityArg, current, changedDeps);
-
-      storeRef.current = newStore;
-      return newStore;
+      return initStore();
     },
     deps,
   );

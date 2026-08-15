@@ -3,7 +3,7 @@ import { CacheableFactory, CacheCallOptions, CallCache, CaptureCallFactory, Meth
 import { RestArguments } from '@mic-rexjs/usecases/es/types';
 
 export const methodUseCase = (): MethodReducers => {
-  const { isValueMatched } = valueUseCase();
+  const { matchValue } = valueUseCase();
 
   const cacheCall = <T extends CacheableFactory>(factory: T, options?: CacheCallOptions): T => {
     let cache: CallCache<T>;
@@ -13,7 +13,7 @@ export const methodUseCase = (): MethodReducers => {
         return true;
       },
       onCompare = <TArgs extends Parameters<T>>(newArgs: TArgs, oldArgs: TArgs): boolean => {
-        return isValueMatched(newArgs, oldArgs);
+        return matchValue(newArgs, oldArgs);
       },
     } = options || {};
 

@@ -8,7 +8,7 @@ import { useLatest, useMemoizedFn, useUnmount, useUpdate, useUpdateEffect } from
 import { useEffect, useRef } from 'react';
 import { Statuses } from '@/enums/Statuses';
 import { triggerWatchers } from '@/methods/triggerWatchers';
-import { Dependencies, EntityInitializer } from '@/types';
+import { EntityInitializer } from '@/types';
 import { valueUseCase } from '@/usecases/valueUseCase';
 
 export const useEntity = <
@@ -31,11 +31,7 @@ export const useEntity = <
   const entityEnabled = (statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled;
   const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
   const { bindEntity, unbindEntity } = reducers;
-
-  const { isValueChanged, recordValue } = useConstantEntityReducers(
-    entityArg,
-    valueUseCase<T | EntityInitializer<T, Dependencies>>,
-  );
+  const { isValueChanged, recordValue } = useConstantEntityReducers(entityArg, valueUseCase<T | EntityInitializer<T>>);
 
   const onTriggerWatchers = useMemoizedFn((newEntity: T, oldEntity: T): void => {
     const { watch } = optionsRef.current;
