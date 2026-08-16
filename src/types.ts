@@ -7,9 +7,3 @@ export type InitEntityResult<T> = T | EntityGenerator<T> | AsyncEntityCallbackGe
 export interface EntityInitializer<T> {
   (entity: T | undefined): InitEntityResult<T>;
 }
-
-export interface EntityLifeCycles<T> {
-  bindEntity?<S extends T>(entity: S): S | void;
-
-  unbindEntity?(entity: T): void;
-}
