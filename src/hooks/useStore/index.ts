@@ -61,11 +61,13 @@ export const useStore = <
 
         const newResult = createEntity<T>(entity, result);
 
-        store.value = newResult;
+        // 不能用 `store.value`，因为可能存在异步，异步更新是需要触发组件更新的
+        store.setValue(newResult);
         return [newResult, result];
       },
       onReturn(result: T): T {
-        store.value = result;
+        // 不能用 `store.value`，因为可能存在异步，异步更新是需要触发组件更新的
+        store.setValue(result);
         return result;
       },
     });
