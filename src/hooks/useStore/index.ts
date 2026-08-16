@@ -39,20 +39,38 @@ export const useStore = <
     const { current: prevCreateEntityList } = createEntityListRef;
     const store = new EntityStore(currentEntity as T);
     const createEntityList: Partial<T>[] = [];
-    const { diffValue } = valueUseCase();
+    const { isObjectValue, matchValue } = valueUseCase();
 
     const { initEntity } = createEntityReducers(store, entityRuntimeUseCase<T>, {
       onInit(currentValue: T): InitEntityResult<T> {
         return (entityArg as EntityInitializer<T>)(currentValue);
       },
       onCreate(newEntity: T, oldEntity: T): T {
-        const { [index]: prevEntity } = prevCreateEntityList;
-        const diffEntity = diffValue(prevEntity, newEntity) as T;
+        const currentIndex = index;
+        const isObject = isObjectValue(oldEntity);
+        const isArray = isObject && Array.isArray(oldEntity);
 
-        createEntityList[index] = newEntity;
         index++;
+        createEntityList[currentIndex] = newEntity;
 
-        return createEntity(oldEntity, diffEntity);
+        if (!isObject || isArray) {
+          return createEntity(oldEntity, newEntity);
+        }
+
+        const descriptors: PropertyDescriptorMap = {};
+        const { [currentIndex]: prevEntity } = prevCreateEntityList;
+
+        matchValue(prevEntity, newEntity, (key: keyof T): void => {
+          const descriptor = Object.getOwnPropertyDescriptor(newEntity, key) || null;
+
+          if (descriptor === null) {
+            return;
+          }
+
+          descriptors[key] = descriptor;
+        });
+
+        return createEntity(oldEntity, Object.defineProperties({}, descriptors));
       },
       onGenerate(entity: T, result?: T): EntityGeneratorValues<T, T | undefined> {
         if (typeof result === 'undefined') {

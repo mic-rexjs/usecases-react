@@ -8,12 +8,22 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
     const { createKey } = utilsUseCase();
     let prevKeyIndex: React.Key = createKey();
 
-    const hasField = (entity: T, field: PropertyKey): boolean => {
+    const isObjectValue = (entity: T): boolean => {
       if (typeof entity !== 'object' || entity === null) {
         return false;
       }
 
-      return Object.hasOwn(entity, field);
+      return true;
+    };
+
+    const hasField = (entity: T, field: PropertyKey): boolean => {
+      const isObject = isObjectValue(entity);
+
+      if (isObject) {
+        return Object.hasOwn(entity as object, field);
+      }
+
+      return false;
     };
 
     const isValueChanged = <S extends T>(entity: S, value: S): boolean => {
@@ -29,10 +39,10 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
         return true;
       }
 
-      const isObject1 = typeof entity === 'object' && entity !== null;
-      const isObject2 = typeof value === 'object' && value !== null;
-      const keys1 = isObject1 ? Object.keys(entity) : [];
-      const keys2 = isObject2 ? Object.keys(value) : [];
+      const isObject1 = isObjectValue(entity);
+      const isObject2 = isObjectValue(value);
+      const keys1 = isObject1 ? Object.keys(entity as object) : [];
+      const keys2 = isObject2 ? Object.keys(value as object) : [];
       const hasCallback = typeof onMatchPropertyFailed === 'function';
 
       if (!isObject1 && !isObject2) {
@@ -45,8 +55,8 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
 
       for (let i = 0, { length } = keys; i < length; i++) {
         const key = keys[i];
-        const isFromKeys2 = i >= length1;
         const isInKey1 = keys1.includes(key);
+        const isFromKeys2 = i >= length1;
         const isUsed = isFromKeys2 && isInKey1;
 
         if (isUsed) {
@@ -55,14 +65,11 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
 
         const hasField1 = hasField(entity, key);
         const hasField2 = hasField(value, key);
-        const onlyHasField1 = hasField1 && !hasField2;
-        const onlyHasField2 = !hasField1 && hasField2;
-        const onlyHasOneField = onlyHasField1 || onlyHasField2;
         const value1 = hasField1 ? entity[key as keyof S] : void 0;
         const value2 = hasField2 ? value[key as keyof S] : void 0;
         const matched = value1 === value2;
 
-        if (!onlyHasOneField && matched) {
+        if (hasField1 && hasField2 && matched) {
           continue;
         }
 
@@ -156,31 +163,6 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
       return allMatched;
     };
 
-    const diffValue = <S extends T>(
-      entity: S,
-      value: S,
-      onMatchPropertyFailed?: MatchValuePropertyFailedCallback<S>,
-    ): Partial<S> => {
-      const isArray1 = Array.isArray(entity);
-      const isArray2 = Array.isArray(value);
-      const isArray = isArray1 && isArray2;
-      const result = (isArray ? [] : {}) as Partial<S>;
-
-      if (isArray) {
-        const { length: length1 } = entity;
-        const { length: length2 } = value;
-
-        (result as typeof entity).length = Math.max(length1, length2);
-      }
-
-      matchValue(entity, value, <K extends keyof S>(key: K, newSubValue: S[K], oldSubValue: S[K]): void => {
-        result[key] = newSubValue;
-        onMatchPropertyFailed?.(key, newSubValue, oldSubValue);
-      });
-
-      return result;
-    };
-
     const recordValue = function* <S extends T>(entity: S, value: S): EntityGenerator<S, boolean> {
       const changed = isValueChanged(entity, value);
 
@@ -190,20 +172,6 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
 
       yield value;
       return true;
-    };
-
-    const recordValueDiff = function* <S extends T>(entity: S, value: S): EntityGenerator<S, Partial<S>> {
-      let matched = true;
-
-      const result = diffValue(entity, value, (): void => {
-        matched = false;
-      });
-
-      if (!matched) {
-        yield value;
-      }
-
-      return result;
     };
 
     const recordValueMatch = function* <S extends T>(entity: S, value: S): EntityGenerator<S, boolean> {
@@ -233,12 +201,11 @@ export const valueUseCase = createUseCase((): ValueUseCase => {
 
     return {
       ...entityReducers,
-      diffValue,
+      isObjectValue,
       isValueChanged,
       matchValue,
       matchProperty,
       recordValue,
-      recordValueDiff,
       recordValueMatch,
       recordValueMatchWith,
     };

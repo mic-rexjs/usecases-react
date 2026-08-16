@@ -13,11 +13,7 @@ export interface MatchValuePropertyFailedCallback<T> {
 export type ValueReducers<T> = EntityReducers<
   T,
   {
-    diffValue<S extends T>(
-      entity: S,
-      value: S,
-      onMatchPropertyFailed?: MatchValuePropertyFailedCallback<S>,
-    ): Partial<S>;
+    isObjectValue(entity: T): boolean;
 
     isValueChanged<S extends T>(entity: S, value: S): boolean;
 
@@ -31,8 +27,6 @@ export type ValueReducers<T> = EntityReducers<
     ): boolean;
 
     recordValue<S extends T>(entity: S, value: S): EntityGenerator<S, boolean>;
-
-    recordValueDiff<S extends T>(entity: S, value: S): EntityGenerator<S, Partial<S>>;
 
     recordValueMatch<S extends T>(entity: S, value: S): EntityGenerator<S, boolean>;
 

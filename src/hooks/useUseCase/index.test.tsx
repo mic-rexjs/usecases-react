@@ -576,6 +576,48 @@ describe('useUseCase', (): void => {
       expect(entity2).toEqual({ ...defaultFile, path: PATH_1 });
     });
 
+    test('Entity property accessors should be reserved in initializer', (): void => {
+      let updateIndex = 0;
+
+      const defaultFileWithAccessors = {
+        ...defaultFile,
+        get text(): string {
+          const { path } = this;
+
+          return `xyz-${path}`;
+        },
+      };
+
+      const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
+        return useUseCase(
+          function* (): EntityGenerator<TestFile> {
+            yield defaultFileWithAccessors;
+
+            yield {
+              path: PATH_1,
+            };
+          },
+          fileUseCase,
+          {},
+          [updateIndex++],
+        );
+      });
+
+      const { current: current1 } = result;
+      const [entity1, { setEntity }] = current1;
+
+      expect(entity1).toEqual({ ...defaultFile, path: PATH_1, text: `xyz-${PATH_1}` });
+
+      act((): void => {
+        setEntity({ path: PATH_2 });
+      });
+
+      const { current: current2 } = result;
+      const [entity2] = current2;
+
+      expect(entity2).toEqual({ ...defaultFile, path: PATH_2, text: `xyz-${PATH_2}` });
+    });
+
     test('Entity property getter should always return the same object if nothing changed after component update', (): void => {
       let updateTimes = 0;
 
