@@ -79,7 +79,7 @@ export const useEntity = <
 
     isFirstRef.current = false;
 
-    if (isFirst) {
+    if (isFirst && entityRootEnabled) {
       currentEntity = (bindEntity?.() ?? currentEntity) as T;
     }
 
@@ -120,6 +120,10 @@ export const useEntity = <
   }, [entityEnabled, store, onEntityChange]);
 
   useUnmount((): void => {
+    if (!entityRootEnabled) {
+      return;
+    }
+
     unbindEntity?.();
   });
 
