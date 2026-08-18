@@ -1,7 +1,7 @@
 import { EntityReducers } from '@mic-rexjs/usecases';
 
 export interface LifeCycleUseCaseOptions<T> {
-  onBind?<S extends T>(entity: S): S | void;
+  onBind?(entity: T): void;
 
   onUnbind?(entity: T): void;
 }
@@ -9,7 +9,7 @@ export interface LifeCycleUseCaseOptions<T> {
 export type LifeCycleReducers<T> = EntityReducers<
   T,
   {
-    bindEntity<S extends T>(entity: S): S | void;
+    bindEntity(entity: T): void;
 
     unbindEntity(entity: T): void;
   }

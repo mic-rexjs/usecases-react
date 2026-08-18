@@ -5,8 +5,8 @@ export const lifeCycleUseCase = <T>(options: LifeCycleUseCaseOptions<T> = {}): L
   const { onBind, onUnbind } = options;
   const entityReducers = entityUseCase();
 
-  const bindEntity = <S extends T>(entity: S): S | void => {
-    return onBind?.(entity);
+  const bindEntity = <S extends T>(entity: S): void => {
+    onBind?.(entity);
   };
 
   const unbindEntity = (entity: T): void => {

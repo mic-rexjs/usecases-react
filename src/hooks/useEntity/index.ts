@@ -74,27 +74,34 @@ export const useEntity = <
   });
 
   useExec((): void => {
-    let currentEntity = entityArg as T;
     const { current: isFirst } = isFirstRef;
 
     isFirstRef.current = false;
 
-    if (isFirst && entityRootEnabled) {
-      currentEntity = (bindEntity?.() ?? currentEntity) as T;
+    if (!entityRootEnabled) {
+      return;
     }
 
-    switch (true) {
-      case !entityRootEnabled:
-      case isFunction:
-      case !isValueChanged(currentEntity):
-        return;
+    if (isFirst) {
+      // 这里不要修改 `entity`，因为 `useUseCase` 有初始化 `entity` 的逻辑
+      bindEntity?.();
     }
 
-    recordValue(currentEntity);
+    if (isFunction) {
+      return;
+    }
+
+    const isChanged = isValueChanged(entityArg);
+
+    if (!isChanged) {
+      return;
+    }
+
+    recordValue(entityArg);
 
     store.disableWatchers();
     // 执行同步操作
-    store.setValue(currentEntity);
+    store.setValue(entityArg);
     store.enableWatchers();
   });
 
