@@ -28,11 +28,12 @@ export const useProvider = <T, TReducers extends ReducerMap>(
   return useConstantFn(({ children, with: withProviders = [] }: UseCaseProviderProps): ReactElement => {
     const { Provider: ContextProvider } = context;
     const { current: value } = contextValueRef;
+    const providers = Array.isArray(withProviders) ? withProviders : [withProviders];
 
     return React.createElement(
       ContextProvider,
       { value },
-      withProviders.reduceRight((currentChildren: ReactNode, withProvider: FC): ReactNode => {
+      providers.reduceRight((currentChildren: ReactNode, withProvider: FC): ReactNode => {
         return React.createElement(withProvider, {}, currentChildren);
       }, children),
     );
