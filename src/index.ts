@@ -1,6 +1,7 @@
 export { UseCaseFragment } from './components/UseCaseFragment';
 export { useUseCase } from './hooks/useUseCase';
 export { lifeCycleUseCase } from './usecases/lifeCycleUseCase';
+export { useProviders } from './hooks/useProviders';
 
 export type {
   EntityWatchEvent,
