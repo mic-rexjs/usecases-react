@@ -1,15 +1,14 @@
-import { useConstantEntityReducers } from '../useConstantEntityReducers';
+import { useEntityInitializing } from '../useEntityInitializing';
 import { useExec } from '../useExec';
 import { UseCaseHookOptions } from '../useUseCase/types';
 import { EntityStore } from '@mic-rexjs/usecases';
 import { ScopedEntityReducers } from '@mic-rexjs/usecases/es/methods/createEntityReducers/types';
 import { EntityReducerMap } from '@mic-rexjs/usecases/es/types';
-import { useLatest, useMemoizedFn, useUnmount, useUpdate, useUpdateEffect } from 'ahooks';
+import { useLatest, useMemoizedFn, usePrevious, useUnmount, useUpdate, useUpdateEffect } from 'ahooks';
 import { useEffect, useRef } from 'react';
 import { Statuses } from '@/enums/Statuses';
 import { triggerWatchers } from '@/methods/triggerWatchers';
 import { EntityInitializer } from '@/types';
-import { valueUseCase } from '@/usecases/valueUseCase';
 
 export const useEntity = <
   T,
@@ -25,13 +24,16 @@ export const useEntity = <
   const update = useUpdate();
   const isFunction = typeof entityArg === 'function';
   const { value: entity } = store;
-  const isFirstRef = useRef(true);
   const optionsRef = useLatest(options);
   const prevEntityRef = useRef(entity);
+  const isInitializing = useEntityInitializing(statuses);
   const entityEnabled = (statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled;
   const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
   const { bindEntity, unbindEntity } = reducers;
-  const { isValueChanged, recordValue } = useConstantEntityReducers(entityArg, valueUseCase<T | EntityInitializer<T>>);
+
+  const prevEntityArg = usePrevious(entityArg, (): boolean => {
+    return true;
+  });
 
   const onTriggerWatchers = useMemoizedFn((newEntity: T, oldEntity: T): void => {
     const { watch } = optionsRef.current;
@@ -43,12 +45,19 @@ export const useEntity = <
     triggerWatchers(watch, newEntity, oldEntity);
   });
 
+  const onValueChange = useMemoizedFn((newEntity = entity, oldEntity = prevEntityRef.current): void => {
+    if (!entityEnabled) {
+      return;
+    }
+
+    prevEntityRef.current = newEntity;
+    onTriggerWatchers(newEntity, oldEntity as T);
+  });
+
   const onEntityChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
     const { onChange } = optionsRef.current;
 
-    prevEntityRef.current = newEntity;
-
-    onTriggerWatchers(newEntity, oldEntity);
+    onValueChange(newEntity, oldEntity);
     onChange?.(newEntity, oldEntity);
 
     if (!entityRootEnabled) {
@@ -58,31 +67,12 @@ export const useEntity = <
     update();
   });
 
-  const onValueChange = useMemoizedFn((): void => {
-    if (!entityEnabled) {
-      return;
-    }
-
-    const { current: prevEntity } = prevEntityRef;
-
-    if (entity === prevEntity) {
-      return;
-    }
-
-    prevEntityRef.current = entity;
-    onTriggerWatchers(entity, prevEntity as T);
-  });
-
   useExec((): void => {
-    const { current: isFirst } = isFirstRef;
-
-    isFirstRef.current = false;
-
     if (!entityRootEnabled) {
       return;
     }
 
-    if (isFirst) {
+    if (isInitializing) {
       // 这里不要修改 `entity`，因为 `useUseCase` 有初始化 `entity` 的逻辑
       bindEntity?.();
     }
@@ -91,13 +81,11 @@ export const useEntity = <
       return;
     }
 
-    const isChanged = isValueChanged(entityArg);
+    const isChanged = entityArg !== prevEntityArg;
 
-    if (!isChanged) {
+    if (!isChanged || isInitializing) {
       return;
     }
-
-    recordValue(entityArg);
 
     store.disableWatchers();
     // 执行同步操作
