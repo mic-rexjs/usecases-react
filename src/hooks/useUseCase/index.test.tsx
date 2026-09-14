@@ -16,7 +16,7 @@ import { useDeepCompareEffect, useMemoizedFn, useMount, useUpdate, useUpdateEffe
 import { Dispatch, Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Dependencies } from '@/types';
-import { lifecycleUseCase } from '@/usecases/lifecycleUseCase1';
+import { lifecycleUseCase } from '@/usecases/lifecycleUseCase';
 
 interface TestFieldPathData {
   list?: TestFile[];
