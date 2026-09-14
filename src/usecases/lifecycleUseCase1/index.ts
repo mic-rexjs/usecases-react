@@ -1,8 +1,8 @@
 import { lifecycleEventUseCase } from '../lifecycleEventUseCase';
-import { LifeCycleReducers, LifeCycleUseCaseOptions } from './types';
+import { LifecycleReducers, LifecycleUseCaseOptions } from './types';
 import { entityUseCase } from '@mic-rexjs/usecases';
 
-export const lifeCycleUseCase = <T>(options: LifeCycleUseCaseOptions<T> = {}): LifeCycleReducers<T> => {
+export const lifecycleUseCase = <T>(options: LifecycleUseCaseOptions<T> = {}): LifecycleReducers<T> => {
   const { onBind, onUnbind, onChange, onUpdate } = options;
   const { setLifecycleEvents } = lifecycleEventUseCase();
   const entityReducers = entityUseCase();

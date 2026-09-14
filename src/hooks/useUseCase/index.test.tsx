@@ -16,7 +16,7 @@ import { useDeepCompareEffect, useMemoizedFn, useMount, useUpdate, useUpdateEffe
 import { Dispatch, Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Dependencies } from '@/types';
-import { lifeCycleUseCase } from '@/usecases/lifeCycleUseCase';
+import { lifecycleUseCase } from '@/usecases/lifecycleUseCase1';
 
 interface TestFieldPathData {
   list?: TestFile[];
@@ -2066,7 +2066,7 @@ describe('useUseCase', (): void => {
       });
 
       const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-        const lifecycleReducers = lifeCycleUseCase({
+        const lifecycleReducers = lifecycleUseCase({
           onBind,
         });
 
@@ -2094,7 +2094,7 @@ describe('useUseCase', (): void => {
       });
 
       const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-        const lifecycleReducers = lifeCycleUseCase({
+        const lifecycleReducers = lifecycleUseCase({
           onChange,
         });
 
@@ -2127,7 +2127,7 @@ describe('useUseCase', (): void => {
       });
 
       const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-        const lifecycleReducers = lifeCycleUseCase({
+        const lifecycleReducers = lifecycleUseCase({
           onUpdate,
         });
 
@@ -2159,7 +2159,7 @@ describe('useUseCase', (): void => {
       });
 
       const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-        const lifecycleReducers = lifeCycleUseCase({
+        const lifecycleReducers = lifecycleUseCase({
           onUnbind,
         });
 
