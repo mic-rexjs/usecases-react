@@ -16,6 +16,7 @@ import { useDeepCompareEffect, useMemoizedFn, useMount, useUpdate, useUpdateEffe
 import { Dispatch, Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Dependencies } from '@/types';
+import { lifeCycleUseCase } from '@/usecases/lifeCycleUseCase';
 
 interface TestFieldPathData {
   list?: TestFile[];
@@ -2059,17 +2060,18 @@ describe('useUseCase', (): void => {
       expect(onBooleanMount).toHaveBeenCalledWith(true);
     });
 
-    test('`bindEntity` should be called when component mount', (): void => {
-      const bindEntity = jest.fn((entity: number): void => {
+    test('`onBind` event should be called when component mount', (): void => {
+      const onBind = jest.fn((entity: number): void => {
         void entity;
       });
 
-      const testUseCase = (): EntityReducers<number, Record<'bindEntity', typeof bindEntity>> => {
-        const entityReducers = entityUseCase();
+      const testUseCase = (): EntityReducers<number, Record<never, never>> => {
+        const lifecycleReducers = lifeCycleUseCase({
+          onBind,
+        });
 
         return {
-          ...entityReducers,
-          bindEntity,
+          ...lifecycleReducers,
         };
       };
 
@@ -2081,21 +2083,88 @@ describe('useUseCase', (): void => {
         });
       });
 
-      expect(bindEntity).toHaveBeenCalledTimes(1);
-      expect(bindEntity).toHaveBeenCalledWith(5);
+      expect(onBind).toHaveBeenCalledTimes(1);
+      expect(onBind).toHaveBeenCalledWith(5);
     });
 
-    test('`unbindEntity` should be called when component unmount', (): void => {
-      const unbindEntity = jest.fn((entity: number): void => {
+    test('`onChange` event should be called when entity change', (): void => {
+      const onChange = jest.fn((newEntity: number, oldEntity: number): void => {
+        void newEntity;
+        void oldEntity;
+      });
+
+      const testUseCase = (): EntityReducers<number, Record<never, never>> => {
+        const lifecycleReducers = lifeCycleUseCase({
+          onChange,
+        });
+
+        return {
+          ...lifecycleReducers,
+        };
+      };
+
+      const { result } = renderHook((): CoreCollection<number, EntityReducers<number, Record<never, never>>> => {
+        return useUseCase(5, testUseCase);
+      });
+
+      const { current } = result;
+      const [, { setEntity }] = current;
+
+      expect(onChange).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        setEntity(100);
+      });
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(onChange).toHaveBeenCalledWith(100, 5);
+    });
+
+    test('`onUpdate` event should be called when entity change', (): void => {
+      const onUpdate = jest.fn((newEntity: number, oldEntity: number): void => {
+        void newEntity;
+        void oldEntity;
+      });
+
+      const testUseCase = (): EntityReducers<number, Record<never, never>> => {
+        const lifecycleReducers = lifeCycleUseCase({
+          onUpdate,
+        });
+
+        return {
+          ...lifecycleReducers,
+        };
+      };
+
+      const { result } = renderHook((): CoreCollection<number, EntityReducers<number, Record<never, never>>> => {
+        return useUseCase(5, testUseCase);
+      });
+
+      const { current } = result;
+      const [, { setEntity }] = current;
+
+      expect(onUpdate).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        setEntity(100);
+      });
+
+      expect(onUpdate).toHaveBeenCalledTimes(1);
+      expect(onUpdate).toHaveBeenCalledWith(100, 5);
+    });
+
+    test('`onUnbind` event should be called when component unmount', (): void => {
+      const onUnbind = jest.fn((entity: number): void => {
         void entity;
       });
 
-      const testUseCase = (): EntityReducers<number, Record<'unbindEntity', typeof unbindEntity>> => {
-        const entityReducers = entityUseCase();
+      const testUseCase = (): EntityReducers<number, Record<never, never>> => {
+        const lifecycleReducers = lifeCycleUseCase({
+          onUnbind,
+        });
 
         return {
-          ...entityReducers,
-          unbindEntity,
+          ...lifecycleReducers,
         };
       };
 
@@ -2107,12 +2176,12 @@ describe('useUseCase', (): void => {
         });
       });
 
-      expect(unbindEntity).toHaveBeenCalledTimes(0);
+      expect(onUnbind).toHaveBeenCalledTimes(0);
 
       unmount();
 
-      expect(unbindEntity).toHaveBeenCalledTimes(1);
-      expect(unbindEntity).toHaveBeenCalledWith(100);
+      expect(onUnbind).toHaveBeenCalledTimes(1);
+      expect(onUnbind).toHaveBeenCalledWith(100);
     });
   });
 

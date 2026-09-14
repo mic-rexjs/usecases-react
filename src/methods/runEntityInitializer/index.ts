@@ -4,15 +4,16 @@ import { EntityInitializer, InitEntityResult } from '@/types';
 import { entityRuntimeUseCase } from '@/usecases/entityRuntimeUseCase';
 import { objectUtilsUseCase } from '@/usecases/objectUtilsUseCase';
 
-export const initStore = <T>(
+export const runEntityInitializer = <T>(
   store: EntityStore<T>,
-  entityArg: T | EntityInitializer<T>,
+  initializer: EntityInitializer<T>,
   prevCreateEntityList: Partial<T>[],
   isInitializing: boolean,
 ): Partial<T>[] => {
   let isAsync = false;
-  const isFunction = typeof entityArg === 'function';
+  let index = 0;
   const createEntityList: Partial<T>[] = [];
+  const { isObject, isEqual } = objectUtilsUseCase();
 
   const onInitStoreValue = (value: T): T => {
     if (!isInitializing || isAsync) {
@@ -22,17 +23,9 @@ export const initStore = <T>(
     return store.initValue(value);
   };
 
-  if (!isFunction) {
-    onInitStoreValue(entityArg);
-    return [];
-  }
-
-  let index = 0;
-  const { isObject, isEqual } = objectUtilsUseCase();
-
   const { initEntity } = createEntityReducers(store, entityRuntimeUseCase<T>, {
     onInit(currentValue: T): InitEntityResult<T> {
-      return (entityArg as EntityInitializer<T>)(currentValue);
+      return initializer(currentValue);
     },
     onCreate(newEntity: T, oldEntity: T): T {
       const currentIndex = index;

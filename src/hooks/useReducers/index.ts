@@ -1,4 +1,3 @@
-import { useConstantReducers } from '../useConstantReducers';
 import { useContextualItem } from '../useContextualItem';
 import { UseCaseHookOptions } from '../useUseCase/types';
 import { createEntityReducers, EntityStore } from '@mic-rexjs/usecases';
@@ -21,37 +20,41 @@ export const useReducers = <T, TReducers extends ReducerMap, TUseCaseOptions ext
   const optionsRef = useLatest(options);
   const contextValue = useContext(context);
   const { reducers: contextReducers = null } = contextValue || {};
-  const { captureCalls } = useConstantReducers(methodUseCase);
+  const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
 
-  const reducers = useContextualItem(
+  const onCreate = (): TReducers => {
+    const { captureCalls } = methodUseCase();
+
+    const opts = captureCalls(options, <TReturn>(key: string, callArgs: RestArguments): TReturn => {
+      return (optionsRef.current as Record<string, (...args: RestArguments) => TReturn>)[key]?.(...callArgs);
+    });
+
+    if (!entityRootEnabled) {
+      return usecase(opts as TUseCaseOptions);
+    }
+
+    const hookOptions = opts as UseCaseHookOptions<T, TUseCaseOptions>;
+    const { watch, onChange, options: usecaseOptions, ...restUseCaseOptions } = hookOptions;
+
+    return createEntityReducers(
+      store,
+      usecase as EntityUseCase<T, EntityReducers<T>, TUseCaseOptions>,
+      {
+        ...restUseCaseOptions,
+        ...usecaseOptions,
+        onGenerate<TResult>(newEntity: T, result: TResult): TResult {
+          return result;
+        },
+      } as TUseCaseOptions,
+    );
+  };
+
+  return useContextualItem(
     contextReducers,
     statuses,
     (): TReducers => {
-      const opts = captureCalls(options, <TReturn>(key: string, callArgs: RestArguments): TReturn => {
-        return (optionsRef.current as Record<string, (...args: RestArguments) => TReturn>)[key]?.(...callArgs);
-      });
-
-      if ((statuses & Statuses.EntityEnabled) !== Statuses.EntityEnabled) {
-        return usecase(opts as TUseCaseOptions);
-      }
-
-      const hookOptions = opts as UseCaseHookOptions<T, TUseCaseOptions>;
-      const { watch, onChange, options: usecaseOptions, ...restUseCaseOptions } = hookOptions;
-
-      return createEntityReducers(
-        store,
-        usecase as EntityUseCase<T, EntityReducers<T>, TUseCaseOptions>,
-        {
-          ...restUseCaseOptions,
-          ...usecaseOptions,
-          onGenerate<TResult>(newEntity: T, result: TResult): TResult {
-            return result;
-          },
-        } as TUseCaseOptions,
-      );
+      return onCreate();
     },
     deps,
   );
-
-  return reducers;
 };

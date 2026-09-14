@@ -1,16 +1,6 @@
+import { LifecycleEvents } from '../lifecycleEventUseCase/types';
 import { EntityReducers } from '@mic-rexjs/usecases';
 
-export interface LifeCycleUseCaseOptions<T> {
-  onBind?(entity: T): void;
+export interface LifeCycleUseCaseOptions<T> extends Partial<LifecycleEvents<T>> {}
 
-  onUnbind?(entity: T): void;
-}
-
-export type LifeCycleReducers<T> = EntityReducers<
-  T,
-  {
-    bindEntity(entity: T): void;
-
-    unbindEntity(entity: T): void;
-  }
->;
+export type LifeCycleReducers<T> = EntityReducers<T, Record<never, never>>;

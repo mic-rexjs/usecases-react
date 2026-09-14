@@ -1,6 +1,5 @@
 import { useArgumentTypes } from '../useArgumentTypes';
 import { useConstantFn } from '../useConstantFn';
-import { useConstantReducers } from '../useConstantReducers';
 import { useContext } from '../useContext';
 import { useEntity } from '../useEntity';
 import { useFullArguments } from '../useFullArguments';
@@ -24,14 +23,13 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
   const argumentTypes = useArgumentTypes(args);
   const fullArguments = useFullArguments<T, TReducers, TUseCaseOptions>(args, argumentTypes);
   const [unsafeEntity, unsafeUsecase, options, deps] = fullArguments;
-  const { cacheCalls } = useConstantReducers(methodUseCase);
   const usecase = useConstantFn(unsafeUsecase);
   const context = useContext(usecase, argumentTypes);
   const entityContext = context as unknown as UseCaseContext<EntityUseCaseContextValue<T, EntityReducers<T>>>;
   const statuses = useStatuses(context, argumentTypes);
   const store = useStore(unsafeEntity, entityContext, statuses, deps);
   const reducers = useReducers(usecase, context, store, statuses, options as TUseCaseOptions, deps);
-  const entity = useEntity(unsafeEntity, store, reducers, statuses, options);
+  const entity = useEntity(store, statuses, options);
   const Provider = useProvider(statuses, context, store, reducers);
 
   return useCreation(():
@@ -41,6 +39,8 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
     if ((statuses & Statuses.EntityEnabled) !== Statuses.EntityEnabled) {
       return reducers;
     }
+
+    const { cacheCalls } = methodUseCase();
 
     const cachedReducers = cacheCalls(reducers as Reducers as ContextualEntityReducers<T, EntityReducers<T>>, {
       onShouldCache(): boolean {
@@ -56,5 +56,5 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
     const newEntity = isObjectEntity ? { ...entity } : entity;
 
     return [newEntity, cachedReducers, Provider];
-  }, [statuses, entity, reducers, Provider, isRenderingRef, cacheCalls]);
+  }, [statuses, entity, reducers, Provider, isRenderingRef]);
 }) as UseCaseHook;

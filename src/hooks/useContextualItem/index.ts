@@ -1,4 +1,3 @@
-import { useConstantReducers } from '../useConstantReducers';
 import { useDepsKey } from '../useDepsKey';
 import { CreateContextualItemFactory } from './types';
 import { useCreation, useLatest, useMemoizedFn } from 'ahooks';
@@ -14,9 +13,9 @@ export const useContextualItem = <T>(
 ): T => {
   const depsKey = useDepsKey(deps);
   const factoryRef = useLatest(createFactory);
-  const { cacheCall } = useConstantReducers(methodUseCase);
 
   const onCache = useMemoizedFn((): CreateContextualItemFactory<T> => {
+    const { cacheCall } = methodUseCase();
     const { current: currentFactory } = factoryRef;
 
     // 防止在以下 `onCreate()` 多次调用实际 `factory`

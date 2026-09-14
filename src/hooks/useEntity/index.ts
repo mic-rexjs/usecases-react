@@ -1,38 +1,43 @@
+import { useConstant } from '../useConstant';
+import { useConstantReducers } from '../useConstantReducers';
 import { useEntityInitializing } from '../useEntityInitializing';
 import { useExec } from '../useExec';
 import { UseCaseHookOptions } from '../useUseCase/types';
-import { EntityStore } from '@mic-rexjs/usecases';
-import { ScopedEntityReducers } from '@mic-rexjs/usecases/es/methods/createEntityReducers/types';
-import { EntityReducerMap } from '@mic-rexjs/usecases/es/types';
-import { useLatest, useMemoizedFn, usePrevious, useUnmount, useUpdate, useUpdateEffect } from 'ahooks';
+import { EntityStore, utilsUseCase } from '@mic-rexjs/usecases';
+import { useLatest, useMemoizedFn, useUnmount, useUpdate, useUpdateEffect } from 'ahooks';
 import { useEffect, useRef } from 'react';
 import { Statuses } from '@/enums/Statuses';
 import { triggerWatchers } from '@/methods/triggerWatchers';
-import { EntityInitializer } from '@/types';
+import { lifecycleEventUseCase } from '@/usecases/lifecycleEventUseCase';
+import { LifecycleEventReducers } from '@/usecases/lifecycleEventUseCase/types';
 
 export const useEntity = <
   T,
   TUseCaseOptions extends object,
   TOptions extends UseCaseHookOptions<T, TUseCaseOptions> = UseCaseHookOptions<T, TUseCaseOptions>,
 >(
-  entityArg: T | EntityInitializer<T>,
   store: EntityStore<T>,
-  reducers: ScopedEntityReducers<T, EntityReducerMap<T>>,
   statuses: Statuses,
   options: TOptions,
 ): T => {
-  const update = useUpdate();
-  const isFunction = typeof entityArg === 'function';
   const { value: entity } = store;
+  const update = useUpdate();
+  const isInitializing = useEntityInitializing(statuses);
   const optionsRef = useLatest(options);
   const prevEntityRef = useRef(entity);
-  const isInitializing = useEntityInitializing(statuses);
   const entityEnabled = (statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled;
   const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
-  const { bindEntity, unbindEntity } = reducers;
 
-  const prevEntityArg = usePrevious(entityArg, (): boolean => {
-    return true;
+  const { bindLifecycleEventsKey, getLifecycleEvents, deleteLifecycleEvents } = useConstantReducers(
+    (): LifecycleEventReducers => {
+      return lifecycleEventUseCase();
+    },
+  );
+
+  const lifecycleKey = useConstant((): React.Key => {
+    const { createKey } = utilsUseCase();
+
+    return createKey();
   });
 
   const onTriggerWatchers = useMemoizedFn((newEntity: T, oldEntity: T): void => {
@@ -45,20 +50,32 @@ export const useEntity = <
     triggerWatchers(watch, newEntity, oldEntity);
   });
 
-  const onValueChange = useMemoizedFn((newEntity = entity, oldEntity = prevEntityRef.current): void => {
+  const onEntityUpdate = useMemoizedFn((newEntity = entity, oldEntity = prevEntityRef.current): void => {
     if (!entityEnabled) {
       return;
     }
 
+    const { current: prevEntity } = prevEntityRef;
+
+    if (prevEntity === newEntity) {
+      return;
+    }
+
+    const { onUpdate } = getLifecycleEvents(lifecycleKey);
+
     prevEntityRef.current = newEntity;
     onTriggerWatchers(newEntity, oldEntity as T);
+    onUpdate?.(newEntity, oldEntity);
   });
 
   const onEntityChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
-    const { onChange } = optionsRef.current;
+    const { current: currentOptions } = optionsRef;
+    const { onChange: onChange1 } = currentOptions;
+    const { onChange: onChange2 } = getLifecycleEvents(lifecycleKey);
 
-    onValueChange(newEntity, oldEntity);
-    onChange?.(newEntity, oldEntity);
+    onEntityUpdate(newEntity, oldEntity);
+    onChange1?.(newEntity, oldEntity);
+    onChange2?.(newEntity, oldEntity);
 
     if (!entityRootEnabled) {
       return;
@@ -72,25 +89,26 @@ export const useEntity = <
       return;
     }
 
-    if (isInitializing) {
-      // 这里不要修改 `entity`，因为 `useUseCase` 有初始化 `entity` 的逻辑
-      bindEntity?.();
-    }
+    const { onBind } = bindLifecycleEventsKey(lifecycleKey);
 
-    if (isFunction) {
+    if (!isInitializing) {
       return;
     }
 
-    const isChanged = entityArg !== prevEntityArg;
+    onBind?.(entity);
+  });
 
-    if (!isChanged || isInitializing) {
+  useUnmount((): void => {
+    if (!entityRootEnabled) {
       return;
     }
 
-    store.disableWatchers();
-    // 执行同步操作
-    store.setValue(entityArg);
-    store.enableWatchers();
+    // 要使用最新的 `entity`
+    const { value: currentEntity } = store;
+    const { onUnbind } = getLifecycleEvents(lifecycleKey);
+
+    deleteLifecycleEvents(lifecycleKey);
+    onUnbind?.(currentEntity);
   });
 
   /**
@@ -103,7 +121,7 @@ export const useEntity = <
     }
 
     store.watch(onEntityChange);
-  }, [entityEnabled, store, onEntityChange]);
+  }, [store, entityEnabled, onEntityChange]);
 
   /**
    * 在变化时候，组件更新前，使用 `unwatch`
@@ -112,19 +130,11 @@ export const useEntity = <
     return (): void => {
       store.unwatch(onEntityChange);
     };
-  }, [entityEnabled, store, onEntityChange]);
-
-  useUnmount((): void => {
-    if (!entityRootEnabled) {
-      return;
-    }
-
-    unbindEntity?.();
-  });
+  }, [store, entityEnabled, onEntityChange]);
 
   useUpdateEffect((): void => {
-    onValueChange();
-  }, [entity, onValueChange]);
+    onEntityUpdate();
+  }, [entity, onEntityUpdate]);
 
-  return store.value;
+  return entity;
 };
