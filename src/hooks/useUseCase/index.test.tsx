@@ -2185,6 +2185,77 @@ describe('useUseCase', (): void => {
     });
   });
 
+  test('`onAdopt` event should be called when entity change', (): void => {
+    const onAdopt = jest.fn((newEntity: number, oldeEntity?: number): void => {
+      void newEntity;
+      void oldeEntity;
+    });
+
+    const testUseCase = (): EntityReducers<number, Record<never, never>> => {
+      const lifecycleReducers = lifecycleUseCase({
+        onAdopt,
+      });
+
+      return {
+        ...lifecycleReducers,
+      };
+    };
+
+    const { result } = renderHook((): CoreCollection<number, EntityReducers<number, Record<never, never>>> => {
+      return useUseCase(5, testUseCase);
+    });
+
+    const { current } = result;
+    const [, { setEntity }] = current;
+
+    expect(onAdopt).toHaveBeenCalledTimes(1);
+    expect(onAdopt).toHaveBeenCalledWith(5);
+
+    act((): void => {
+      setEntity(100);
+    });
+
+    expect(onAdopt).toHaveBeenCalledTimes(2);
+    expect(onAdopt).toHaveBeenCalledWith(100, 5);
+  });
+
+  test('`onDiscard` event should be called when component unmount', (): void => {
+    const onDiscard = jest.fn((entity: number): void => {
+      void entity;
+    });
+
+    const testUseCase = (): EntityReducers<number, Record<never, never>> => {
+      const lifecycleReducers = lifecycleUseCase({
+        onDiscard,
+      });
+
+      return {
+        ...lifecycleReducers,
+      };
+    };
+
+    const { result, unmount } = renderHook((): CoreCollection<number, EntityReducers<number, Record<never, never>>> => {
+      return useUseCase(5, testUseCase);
+    });
+
+    const { current } = result;
+    const [, { setEntity }] = current;
+
+    expect(onDiscard).toHaveBeenCalledTimes(0);
+
+    act((): void => {
+      setEntity(100);
+    });
+
+    expect(onDiscard).toHaveBeenCalledTimes(1);
+    expect(onDiscard).toHaveBeenCalledWith(5);
+
+    unmount();
+
+    expect(onDiscard).toHaveBeenCalledTimes(2);
+    expect(onDiscard).toHaveBeenCalledWith(100);
+  });
+
   describe('`useUseCase` should work the same as `useContextualCoreCollection`', (): void => {
     test('Provider should be returned in child component', (): void => {
       const onCore = jest.fn();

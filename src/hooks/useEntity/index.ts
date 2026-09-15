@@ -61,10 +61,12 @@ export const useEntity = <
       return;
     }
 
-    const { onUpdate } = getLifecycleEvents(lifecycleKey);
+    const { onUpdate, onAdopt, onDiscard } = getLifecycleEvents(lifecycleKey);
 
     prevEntityRef.current = newEntity;
     onTriggerWatchers(newEntity, oldEntity as T);
+    onDiscard?.(oldEntity);
+    onAdopt?.(newEntity, oldEntity);
     onUpdate?.(newEntity, oldEntity);
   });
 
@@ -89,13 +91,14 @@ export const useEntity = <
       return;
     }
 
-    const { onBind } = bindLifecycleEventsKey(lifecycleKey);
+    const { onBind, onAdopt } = bindLifecycleEventsKey(lifecycleKey);
 
     if (!isInitializing) {
       return;
     }
 
     onBind?.(entity);
+    onAdopt?.(entity);
   });
 
   useUnmount((): void => {
@@ -105,10 +108,11 @@ export const useEntity = <
 
     // 要使用最新的 `entity`
     const { value: currentEntity } = store;
-    const { onUnbind } = getLifecycleEvents(lifecycleKey);
+    const { onUnbind, onDiscard } = getLifecycleEvents(lifecycleKey);
 
     deleteLifecycleEvents(lifecycleKey);
     onUnbind?.(currentEntity);
+    onDiscard?.(currentEntity);
   });
 
   /**

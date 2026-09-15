@@ -14,6 +14,14 @@ export interface LifecycleEvents<T = unknown> {
   onUnbind(entity: T): void;
 
   /**
+   * 使用新的 `entity` 的时候触发，包括：
+   *
+   * 1. `onBind` 的时候；
+   * 2. `onUpdate` 或 `onChange` 的时候。
+   */
+  onAdopt(newEntity: T, oldEntity?: T): void;
+
+  /**
    * 非渲染阶段触发，随后会触发组件的更新：
    *
    * 只由相关 `reducers` 的调用行为触发；
@@ -28,6 +36,14 @@ export interface LifecycleEvents<T = unknown> {
    * 2. 由 `useUseCase(entity, usecase)` 中的 `entity` 变化触发 - 渲染阶段。
    */
   onUpdate(newEntity: T, oldEntity: T): void;
+
+  /**
+   * 当 `entity` 被废弃时候调用，包括以下两种情况：
+   *
+   * 1. `onUpdate` 或 `onChange` 的时候；
+   * 2. `onUnbind` 的时候。
+   */
+  onDiscard(entity: T): void;
 }
 
 export interface CaptureLifecycleEventsCallback<T> {
