@@ -2066,12 +2066,14 @@ describe('useUseCase', (): void => {
       });
 
       const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-        const lifecycleReducers = lifecycleUseCase({
+        const entityReducers = entityUseCase();
+
+        lifecycleUseCase({
           onBind,
         });
 
         return {
-          ...lifecycleReducers,
+          ...entityReducers,
         };
       };
 
@@ -2094,12 +2096,14 @@ describe('useUseCase', (): void => {
       });
 
       const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-        const lifecycleReducers = lifecycleUseCase({
+        const entityReducers = entityUseCase();
+
+        lifecycleUseCase({
           onChange,
         });
 
         return {
-          ...lifecycleReducers,
+          ...entityReducers,
         };
       };
 
@@ -2127,12 +2131,14 @@ describe('useUseCase', (): void => {
       });
 
       const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-        const lifecycleReducers = lifecycleUseCase({
+        const entityReducers = entityUseCase();
+
+        lifecycleUseCase({
           onUpdate,
         });
 
         return {
-          ...lifecycleReducers,
+          ...entityReducers,
         };
       };
 
@@ -2159,12 +2165,14 @@ describe('useUseCase', (): void => {
       });
 
       const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-        const lifecycleReducers = lifecycleUseCase({
+        const entityReducers = entityUseCase();
+
+        lifecycleUseCase({
           onUnbind,
         });
 
         return {
-          ...lifecycleReducers,
+          ...entityReducers,
         };
       };
 
@@ -2192,12 +2200,14 @@ describe('useUseCase', (): void => {
     });
 
     const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-      const lifecycleReducers = lifecycleUseCase({
+      const entityReducers = entityUseCase();
+
+      lifecycleUseCase({
         onAdopt,
       });
 
       return {
-        ...lifecycleReducers,
+        ...entityReducers,
       };
     };
 
@@ -2225,12 +2235,14 @@ describe('useUseCase', (): void => {
     });
 
     const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-      const lifecycleReducers = lifecycleUseCase({
+      const entityReducers = entityUseCase();
+
+      lifecycleUseCase({
         onDiscard,
       });
 
       return {
-        ...lifecycleReducers,
+        ...entityReducers,
       };
     };
 
