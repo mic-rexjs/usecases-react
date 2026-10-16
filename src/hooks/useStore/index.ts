@@ -46,20 +46,6 @@ export const useStore = <T>(
     );
   };
 
-  const onSetEntity = (): void => {
-    if (isInitializing) {
-      store.initValue(entityArg as T);
-      return;
-    }
-
-    if (entityArg === prevEntityArg) {
-      return;
-    }
-
-    // 执行同步操作
-    store.setValue(entityArg as T);
-  };
-
   /**
    * 这里仅仅是将非函数的 `entity` 同步；
    *
@@ -71,9 +57,17 @@ export const useStore = <T>(
       case !entityRootEnabled:
       case isFunction:
         return;
+
+      case isInitializing:
+        store.initValue(entityArg as T);
+        return;
+
+      case entityArg === prevEntityArg:
+        return;
     }
 
-    onSetEntity();
+    // 执行同步操作
+    store.setValue(entityArg as T);
   });
 
   return useContextualItem(

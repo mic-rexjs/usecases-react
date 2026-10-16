@@ -91,6 +91,8 @@ interface DataOptions<T> {
 interface FileUseCaseOptions {
   pathPrefix?: string;
 
+  onReadFile?(path: string): number;
+
   onPathChange?(newPath: string, oldPath: string): void;
 }
 
@@ -111,7 +113,7 @@ const defaultFile: TestFile = {
 
 const fileUseCase = <T extends TestFile>(options: FileUseCaseOptions = {}): TestReducers<T> => {
   const entityReducers = entityUseCase<T>();
-  const { pathPrefix = '', onPathChange } = options;
+  const { pathPrefix = '', onReadFile, onPathChange } = options;
 
   const init = function* <S extends T>(entity: S, newEntity = defaultFile as S): EntityGenerator<S, void> {
     yield (): S => {
@@ -133,7 +135,7 @@ const fileUseCase = <T extends TestFile>(options: FileUseCaseOptions = {}): Test
   };
 
   const readFile = async function* <S extends T>(entity: S, path: string): AsyncEntityGenerator<S, number> {
-    const size = 2000;
+    const size = onReadFile?.(path) ?? 2000;
 
     yield* setPath(entity, path);
     await Promise.resolve(null);
@@ -1095,7 +1097,7 @@ describe('useUseCase', (): void => {
       expect(addReducer).toHaveBeenCalledTimes(3);
     });
 
-    test('`options.onChange` should be trigger when entity has changed', (): void => {
+    test('`options.onChange` should be triggered when entity has changed', (): void => {
       const onChange = jest.fn<(newEntity: TestFile, oldEntity: TestFile) => void>();
 
       const { result } = renderHook((): CoreCollection<TestFile, TestReducers<TestFile>> => {
@@ -1286,6 +1288,50 @@ describe('useUseCase', (): void => {
       expect(onDeepUpdate).toHaveBeenCalledTimes(0);
     });
 
+    test('event options should be triggered', async (): Promise<void> => {
+      let readFilePromise: Promise<number> | null = null;
+      const buttonText = 'my button';
+
+      const onReadFile = jest.fn((path: string): number => {
+        void path;
+
+        return 1024;
+      });
+
+      const onSizeChange = jest.fn<(size: number) => void>();
+
+      const TestComponent = (): React.ReactElement => {
+        const [{ size }, { readFile }] = useUseCase(defaultFile, fileUseCase, {
+          onReadFile,
+        });
+
+        const onClick = (): void => {
+          readFilePromise = readFile(PATH_1);
+        };
+
+        useUpdateEffect((): void => {
+          onSizeChange(size);
+        }, [size]);
+
+        return <button onClick={onClick}>{buttonText}</button>;
+      };
+
+      render(<TestComponent />);
+
+      expect(onReadFile).toHaveBeenCalledTimes(0);
+      expect(onSizeChange).toHaveBeenCalledTimes(0);
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(screen.getByText(buttonText));
+        await readFilePromise;
+      });
+
+      expect(onReadFile).toHaveBeenCalledTimes(1);
+      expect(onReadFile).toHaveBeenCalledWith(PATH_1);
+      expect(onSizeChange).toHaveBeenCalledTimes(1);
+      expect(onSizeChange).toHaveBeenCalledWith(1024);
+    });
+
     test(`should call latest functions of usecase options even deps has not change`, (): void => {
       const onPathChange1 = jest.fn();
       const onPathChange2 = jest.fn();
@@ -1319,7 +1365,7 @@ describe('useUseCase', (): void => {
       expect(onPathChange2).toHaveBeenLastCalledWith(PATH_2, PATH_1);
     });
 
-    test('`options.watch` should be trigger after entity changed', (): void => {
+    test('`options.watch` should be triggered after entity changed', (): void => {
       const onPathChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
       const onSizeChange = jest.fn();
 
@@ -1353,7 +1399,7 @@ describe('useUseCase', (): void => {
       });
     });
 
-    test('`options.watch` should be trigger after update entity by entity initializer', (): void => {
+    test('`options.watch` should be triggered after update entity by entity initializer', (): void => {
       const onPathChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
 
       const { rerender } = renderHook((path: string = ''): CoreCollection<TestFile, TestReducers<TestFile>> => {
@@ -1403,7 +1449,7 @@ describe('useUseCase', (): void => {
       });
     });
 
-    test('`options.watch` should be trigger after update entity by entity initializer at child component', (): void => {
+    test('`options.watch` should be triggered after update entity by entity initializer at child component', (): void => {
       const onPathChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
 
       const TestChild = (): React.ReactElement => {
@@ -2191,81 +2237,83 @@ describe('useUseCase', (): void => {
       expect(onUnbind).toHaveBeenCalledTimes(1);
       expect(onUnbind).toHaveBeenCalledWith(100);
     });
-  });
 
-  test('`onAdopt` event should be called when entity change', (): void => {
-    const onAdopt = jest.fn((newEntity: number, oldeEntity?: number): void => {
-      void newEntity;
-      void oldeEntity;
-    });
-
-    const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-      const entityReducers = entityUseCase();
-
-      lifecycleUseCase({
-        onAdopt,
+    test('`onAdopt` event should be called when entity change', (): void => {
+      const onAdopt = jest.fn((newEntity: number, oldeEntity?: number): void => {
+        void newEntity;
+        void oldeEntity;
       });
 
-      return {
-        ...entityReducers,
+      const testUseCase = (): EntityReducers<number, Record<never, never>> => {
+        const entityReducers = entityUseCase();
+
+        lifecycleUseCase({
+          onAdopt,
+        });
+
+        return {
+          ...entityReducers,
+        };
       };
-    };
 
-    const { result } = renderHook((): CoreCollection<number, EntityReducers<number, Record<never, never>>> => {
-      return useUseCase(5, testUseCase);
-    });
-
-    const { current } = result;
-    const [, { setEntity }] = current;
-
-    expect(onAdopt).toHaveBeenCalledTimes(1);
-    expect(onAdopt).toHaveBeenCalledWith(5);
-
-    act((): void => {
-      setEntity(100);
-    });
-
-    expect(onAdopt).toHaveBeenCalledTimes(2);
-    expect(onAdopt).toHaveBeenCalledWith(100, 5);
-  });
-
-  test('`onDiscard` event should be called when component unmount', (): void => {
-    const onDiscard = jest.fn((entity: number): void => {
-      void entity;
-    });
-
-    const testUseCase = (): EntityReducers<number, Record<never, never>> => {
-      const entityReducers = entityUseCase();
-
-      lifecycleUseCase({
-        onDiscard,
+      const { result } = renderHook((): CoreCollection<number, EntityReducers<number, Record<never, never>>> => {
+        return useUseCase(5, testUseCase);
       });
 
-      return {
-        ...entityReducers,
+      const { current } = result;
+      const [, { setEntity }] = current;
+
+      expect(onAdopt).toHaveBeenCalledTimes(1);
+      expect(onAdopt).toHaveBeenCalledWith(5);
+
+      act((): void => {
+        setEntity(100);
+      });
+
+      expect(onAdopt).toHaveBeenCalledTimes(2);
+      expect(onAdopt).toHaveBeenCalledWith(100, 5);
+    });
+
+    test('`onDiscard` event should be called when component unmount', (): void => {
+      const onDiscard = jest.fn((entity: number): void => {
+        void entity;
+      });
+
+      const testUseCase = (): EntityReducers<number, Record<never, never>> => {
+        const entityReducers = entityUseCase();
+
+        lifecycleUseCase({
+          onDiscard,
+        });
+
+        return {
+          ...entityReducers,
+        };
       };
-    };
 
-    const { result, unmount } = renderHook((): CoreCollection<number, EntityReducers<number, Record<never, never>>> => {
-      return useUseCase(5, testUseCase);
+      const { result, unmount } = renderHook(
+        (): CoreCollection<number, EntityReducers<number, Record<never, never>>> => {
+          return useUseCase(5, testUseCase);
+        },
+      );
+
+      const { current } = result;
+      const [, { setEntity }] = current;
+
+      expect(onDiscard).toHaveBeenCalledTimes(0);
+
+      act((): void => {
+        setEntity(100);
+      });
+
+      expect(onDiscard).toHaveBeenCalledTimes(1);
+      expect(onDiscard).toHaveBeenCalledWith(5);
+
+      unmount();
+
+      expect(onDiscard).toHaveBeenCalledTimes(2);
+      expect(onDiscard).toHaveBeenCalledWith(100);
     });
-
-    const { current } = result;
-    const [, { setEntity }] = current;
-
-    expect(onDiscard).toHaveBeenCalledTimes(0);
-
-    act((): void => {
-      setEntity(100);
-    });
-
-    expect(onDiscard).toHaveBeenCalledTimes(1);
-    expect(onDiscard).toHaveBeenCalledWith(5);
-
-    unmount();
-
-    expect(onDiscard).toHaveBeenCalledTimes(2);
-    expect(onDiscard).toHaveBeenCalledWith(100);
   });
 
   describe('`useUseCase` should work the same as `useContextualCoreCollection`', (): void => {
@@ -2589,7 +2637,7 @@ describe('useUseCase', (): void => {
       expect(addReducer).toHaveBeenCalledTimes(3);
     });
 
-    test('`options.onChange` event should be trigger in orders', (): void => {
+    test('`options.onChange` event should be triggered in orders', (): void => {
       let changeTimes = 0;
 
       const updateChangeTimes = (): number => {
@@ -2698,7 +2746,75 @@ describe('useUseCase', (): void => {
       expect(onSecondChange).toHaveBeenLastCalledWith(defaultFile, { ...defaultFile, ext: EXT_1, path: PATH_1 });
     });
 
-    test('`options.watch` should be trigger at child elements', (): void => {
+    test('event options should be triggered at child components', async (): Promise<void> => {
+      let readFilePromise: Promise<number> | null = null;
+      const buttonText = 'my button';
+
+      const onReadFile1 = jest.fn((path: string): number => {
+        void path;
+        return 512;
+      });
+
+      const onReadFile2 = jest.fn((path: string): number => {
+        void path;
+        return 1024;
+      });
+
+      const onSizeChange = jest.fn<(size: number) => void>();
+
+      const A = (): React.ReactElement => {
+        const [{ size }, { readFile }] = useUseCase(fileUseCase, {
+          onReadFile: onReadFile1,
+        });
+
+        const onClick = (): void => {
+          readFilePromise = readFile(PATH_1);
+        };
+
+        useUpdateEffect((): void => {
+          onSizeChange(size);
+        }, [size]);
+
+        return (
+          <Fragment>
+            <button onClick={onClick}>{buttonText}</button>
+          </Fragment>
+        );
+      };
+
+      const B = (): React.ReactElement => {
+        const [, , Provider] = useUseCase(defaultFile, fileUseCase, {
+          onReadFile: onReadFile2,
+        });
+
+        return (
+          <Provider>
+            <A />
+          </Provider>
+        );
+      };
+
+      render(<B />);
+
+      expect(onReadFile1).toHaveBeenCalledTimes(0);
+      expect(onReadFile2).toHaveBeenCalledTimes(0);
+
+      await act(async (): Promise<void> => {
+        fireEvent.click(screen.getByText(buttonText));
+
+        await readFilePromise;
+      });
+
+      expect(onReadFile1).toHaveBeenCalledTimes(1);
+      expect(onReadFile2).toHaveBeenCalledWith(PATH_1);
+
+      expect(onReadFile1).toHaveBeenCalledTimes(1);
+      expect(onReadFile2).toHaveBeenCalledWith(PATH_1);
+      expect(onSizeChange).toHaveBeenCalledTimes(1);
+      expect(onSizeChange).toHaveBeenCalledWith(1024);
+    });
+
+    test('`options.watch` should be triggered at child components', (): void => {
       const onExtChange = jest.fn<(event: EntityWatchEvent<TestFile, string>) => void>();
       const firstButtonText = 'first button';
 
@@ -2742,7 +2858,7 @@ describe('useUseCase', (): void => {
       });
     });
 
-    test('`options.watch` should be trigger in orders', (): void => {
+    test('`options.watch` should be triggered in orders', (): void => {
       let changeTimes = 0;
 
       const updateChangeTimes = (e: EntityWatchEvent<TestFile, string>): number => {

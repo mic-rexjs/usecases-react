@@ -9,6 +9,7 @@ import {
   SymbolSet,
   SymbolSetTarget,
 } from '@mic-rexjs/usecases/es/types';
+import { VoidifyEventOptions } from '@/classes/OptionsSet/types';
 import { MatchPropertyFailedResult } from '@/entities/matchPropertyFailedResult/types';
 import { Dependencies, EntityInitializer } from '@/types';
 import { ContextualEntityReducers } from '@/usecases/contextUseCase/types';
@@ -35,8 +36,6 @@ export type ContextualCoreCollection<T, TEntityReducers extends EntityReducerMap
   T,
   TEntityReducers
 >;
-
-export interface EntityGetter<T> extends EntityInitializer<T> {}
 
 export interface EntityWatchEvent<T, TValue = unknown> extends MatchPropertyFailedResult<T, TValue> {}
 
@@ -95,13 +94,13 @@ export type EntityWatchMap<T> = {
   [K in FieldPath<T>]?: EntityWatcher<T, ExtractFieldType<T, K>>;
 };
 
-export interface UseCaseHookContextualOptions<T> {
+export interface ContextualUseCaseHookOptions<T> {
   watch?: EntityWatchMap<T>;
 
   onChange?(newEntity: T, oldEntity: T): void;
 }
 
-export interface UseCaseHookOwnOptions<T, TUseCaseOptions extends object> extends UseCaseHookContextualOptions<T> {
+export interface UseCaseHookOwnOptions<T, TUseCaseOptions extends object> extends ContextualUseCaseHookOptions<T> {
   options?: TUseCaseOptions;
 }
 
@@ -114,7 +113,7 @@ export type UnextendOptionTypes<T> = {
 };
 
 export type UseCaseHookOptions<T, TUseCaseOptions extends object = object> =
-  // 这里要接触 `S extends T` 的关系，因为 `reducers` 里面的函数在去除 `entity` 时，也经过了这个步骤
+  // 这里要解除 `S extends T` 的关系，因为 `reducers` 里面的函数在去除 `entity` 时，也经过了这个步骤
   UnextendOptionTypes<TUseCaseOptions> & UseCaseHookOwnOptions<T, TUseCaseOptions>;
 
 export interface ReducersHook {
@@ -126,10 +125,9 @@ export interface ReducersHook {
 }
 
 export interface ContextualCoreCollectionHook {
-  <T, TEntityReducers extends EntityReducerMap<T>>(
-    usecase: InferableEntityUseCase<T, TEntityReducers>,
-    options?: UseCaseHookContextualOptions<T>,
-    deps?: Dependencies,
+  <T, TEntityReducers extends EntityReducerMap<T>, TUseCaseOptions extends object = object>(
+    usecase: InferableEntityUseCase<T, TEntityReducers, TUseCaseOptions>,
+    options?: UseCaseHookOptions<T, VoidifyEventOptions<TUseCaseOptions>>,
   ): CoreCollection<T, TEntityReducers>;
 }
 

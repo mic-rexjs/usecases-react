@@ -7,6 +7,7 @@ import {
   Reducers,
 } from '@mic-rexjs/usecases';
 import { EntityReducerMap, InferableUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
+import { OptionsSet } from '@/classes/OptionsSet';
 import { ArgumentTypes } from '@/enums/ArgumentTypes';
 import { Statuses } from '@/enums/Statuses';
 
@@ -16,10 +17,14 @@ export interface UseCaseContextValue<T extends ReducerMap> {
   statuses: Statuses;
 }
 
-export interface EntityUseCaseContextValue<T, TEntityReducers extends EntityReducerMap<T>> extends UseCaseContextValue<
-  ContextualEntityReducers<T, TEntityReducers>
-> {
+export interface EntityUseCaseContextValue<
+  T,
+  TEntityReducers extends EntityReducerMap<T>,
+  TOptions = object,
+> extends UseCaseContextValue<ContextualEntityReducers<T, TEntityReducers>> {
   store: EntityStore<T>;
+
+  optionsSet: OptionsSet<TOptions>;
 }
 
 export interface UseCaseContext<T> extends React.Context<T | null> {}

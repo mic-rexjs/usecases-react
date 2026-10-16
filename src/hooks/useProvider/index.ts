@@ -1,28 +1,14 @@
 import { useConstantFn } from '../useConstantFn';
 import { UseCaseProvider, UseCaseProviderProps } from './types';
-import { EntityStore } from '@mic-rexjs/usecases';
 import { ReducerMap } from '@mic-rexjs/usecases/es/types';
-import { useCreation, useLatest } from 'ahooks';
+import { useLatest } from 'ahooks';
 import React, { FC, ReactElement, ReactNode } from 'react';
-import { Statuses } from '@/enums/Statuses';
-import { contextUseCase } from '@/usecases/contextUseCase';
 import { UseCaseContext, UseCaseContextValue } from '@/usecases/contextUseCase/types';
 
-export const useProvider = <T, TReducers extends ReducerMap>(
-  statuses: Statuses,
-  context: UseCaseContext<UseCaseContextValue<TReducers>>,
-  store: EntityStore<T>,
-  reducers: TReducers,
+export const useProvider = <T extends ReducerMap, TContextValue extends UseCaseContextValue<T>>(
+  context: UseCaseContext<TContextValue>,
+  contextValue: TContextValue,
 ): UseCaseProvider => {
-  const { value: entity } = store;
-
-  const contextValue = useCreation((): UseCaseContextValue<TReducers> => {
-    const { createContextValue } = contextUseCase();
-
-    void entity;
-    return createContextValue(store, reducers, statuses);
-  }, [statuses, entity, store, reducers]);
-
   const contextValueRef = useLatest(contextValue);
 
   return useConstantFn(({ children, with: withProviders = [] }: UseCaseProviderProps): ReactElement => {
