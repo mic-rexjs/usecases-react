@@ -1,52 +1,53 @@
-import { ContextReducers, ContextUseCase, UseCaseContext, UseCaseContextReference, UseCaseContextValue } from './types';
-import { createUseCase, EntityStore } from '@mic-rexjs/usecases';
-import { InferableUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
+import {
+  ContextReducers,
+  ContextUseCase,
+  EntityUseCaseContextValue,
+  UseCaseContext,
+  UseCaseContextReference,
+} from './types';
+import { createUseCase } from '@mic-rexjs/usecases';
+import { EntityReducerMap, EntityUseCase } from '@mic-rexjs/usecases/es/types';
 import { createContext } from 'react';
-import { ArgumentTypes } from '@/enums/ArgumentTypes';
-import { Statuses } from '@/enums/Statuses';
 
 export const contextUseCase = createUseCase((): ContextUseCase => {
   const referenceMap = new Map();
-  const defaultUseCaseContext = createContext(null);
 
   return (): ContextReducers => {
-    const createContextValue = <T, TReducers extends ReducerMap>(
-      store: EntityStore<T>,
-      reducers: TReducers,
-      statuses: Statuses,
-    ): UseCaseContextValue<TReducers> => {
-      if ((statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled) {
-        return {
-          store,
-          reducers,
-          statuses,
-        } as UseCaseContextValue<TReducers>;
-      }
-
-      return { reducers, statuses };
+    const getTypedReferenceMap = <
+      T,
+      TEntityReducers extends EntityReducerMap<T>,
+      TUseCaseOptions extends object,
+    >(): Map<
+      EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
+      UseCaseContextReference<EntityUseCaseContextValue<T, TEntityReducers>>
+    > => {
+      return referenceMap;
     };
 
-    const getUseCaseContext = <T extends ReducerMap, TUseCaseOptions extends object>(
-      usecase: InferableUseCase<T, TUseCaseOptions>,
-    ): UseCaseContext<UseCaseContextValue<T>> => {
-      if (!referenceMap.has(usecase)) {
-        return defaultUseCaseContext as UseCaseContext<UseCaseContextValue<T>>;
+    const getContext = <T, TEntityReducers extends EntityReducerMap<T>, TUseCaseOptions extends object>(
+      usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
+    ): UseCaseContext<EntityUseCaseContextValue<T, TEntityReducers>> => {
+      const map = getTypedReferenceMap<T, TEntityReducers, TUseCaseOptions>();
+
+      if (!map.has(usecase)) {
+        return createContext(null) as UseCaseContext<EntityUseCaseContextValue<T, TEntityReducers>>;
       }
 
-      const { value } = referenceMap.get(usecase) as UseCaseContextReference<UseCaseContextValue<T>>;
+      const { value } = map.get(usecase)!;
 
       return value;
     };
 
-    const registerUseCase = <T extends ReducerMap, TUseCaseOptions extends object>(
-      usecase: InferableUseCase<T, TUseCaseOptions>,
-      argumentTypes: ArgumentTypes,
-    ): UseCaseContext<UseCaseContextValue<T>> => {
-      if (referenceMap.has(usecase)) {
-        const reference = referenceMap.get(usecase) as UseCaseContextReference<UseCaseContextValue<T>>;
+    const registerUseCase = <T, TEntityReducers extends EntityReducerMap<T>, TUseCaseOptions extends object>(
+      usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
+    ): UseCaseContext<EntityUseCaseContextValue<T, TEntityReducers>> => {
+      const map = getTypedReferenceMap<T, TEntityReducers, TUseCaseOptions>();
+
+      if (map.has(usecase)) {
+        const reference = map.get(usecase)!;
         const { value, times } = reference;
 
-        referenceMap.set(usecase, {
+        map.set(usecase, {
           value,
           times: times + 1,
         });
@@ -54,13 +55,9 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
         return value;
       }
 
-      if ((argumentTypes & ArgumentTypes.Entity) !== ArgumentTypes.Entity) {
-        return defaultUseCaseContext as UseCaseContext<UseCaseContextValue<T>>;
-      }
+      const context = createContext(null) as UseCaseContext<EntityUseCaseContextValue<T, TEntityReducers>>;
 
-      const context = createContext(null) as UseCaseContext<UseCaseContextValue<T>>;
-
-      referenceMap.set(usecase, {
+      map.set(usecase, {
         value: context,
         times: 1,
       });
@@ -68,25 +65,22 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
       return context;
     };
 
-    const unregisterUseCase = <T extends ReducerMap, TUseCaseOptions extends object>(
-      usecase: InferableUseCase<T, TUseCaseOptions>,
-      argumentTypes: ArgumentTypes,
+    const unregisterUseCase = <T, TEntityReducers extends EntityReducerMap<T>, TUseCaseOptions extends object>(
+      usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
     ): boolean => {
-      if ((argumentTypes & ArgumentTypes.Entity) !== ArgumentTypes.Entity) {
+      const map = getTypedReferenceMap<T, TEntityReducers, TUseCaseOptions>();
+
+      if (!map.has(usecase)) {
         return false;
       }
 
-      if (!referenceMap.has(usecase)) {
-        return false;
-      }
-
-      const reference = referenceMap.get(usecase) as UseCaseContextReference<UseCaseContextValue<T>>;
+      const reference = map.get(usecase)!;
       const { value, times } = reference;
 
       if (times === 1) {
-        referenceMap.delete(usecase);
+        map.delete(usecase);
       } else {
-        referenceMap.set(usecase, {
+        map.set(usecase, {
           value,
           times: times - 1,
         });
@@ -96,8 +90,7 @@ export const contextUseCase = createUseCase((): ContextUseCase => {
     };
 
     return {
-      createContextValue,
-      getUseCaseContext,
+      getContext,
       registerUseCase,
       unregisterUseCase,
     };

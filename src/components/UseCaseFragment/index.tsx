@@ -9,8 +9,8 @@ export const UseCaseFragment = <T, TEntityReducers extends EntityReducerMap<T>>(
   usecase,
   ...props
 }: UseCaseFragmentProps<T, TEntityReducers>): React.ReactElement => {
-  const { getUseCaseContext } = useUseCase(contextUseCase);
-  const context = getUseCaseContext(usecase);
+  const { getContext } = useUseCase(contextUseCase);
+  const context = getContext(usecase);
   const contextValue = useContext(context);
 
   return <Fragment>{contextValue === null ? null : <SafeUseCaseFragment usecase={usecase} {...props} />}</Fragment>;

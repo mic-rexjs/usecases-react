@@ -1,19 +1,22 @@
-import { useConstantReducers } from '../useConstantReducers';
-import { useMemoizedFn, usePrevious } from 'ahooks';
+import { useChanged } from '../useChanged';
+import { useConstant } from '../useConstant';
+import { useMemoizedFn } from 'ahooks';
 import { useRef } from 'react';
 import { Dependencies } from '@/types';
 import { objectUtilsUseCase } from '@/usecases/objectUtilsUseCase';
 
 export const useDepsKey = (deps: Dependencies): React.Key => {
   const keyRef = useRef(0);
-  const prevDeps = usePrevious(deps);
-  const { isEqual } = useConstantReducers(objectUtilsUseCase);
-  const equal = isEqual(deps, prevDeps);
+  const { isEqual } = useConstant(objectUtilsUseCase);
 
-  const getDepsKey = useMemoizedFn((): React.Key => {
+  const isChanged = useChanged(deps, (newDeps: Dependencies, oldDeps?: Dependencies): boolean => {
+    return !isEqual(newDeps, oldDeps);
+  });
+
+  const onCreate = useMemoizedFn((): React.Key => {
     const { current: key } = keyRef;
 
-    if (equal) {
+    if (!isChanged) {
       return key;
     }
 
@@ -23,5 +26,5 @@ export const useDepsKey = (deps: Dependencies): React.Key => {
     return newKey;
   });
 
-  return getDepsKey();
+  return onCreate();
 };

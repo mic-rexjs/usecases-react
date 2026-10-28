@@ -1288,50 +1288,6 @@ describe('useUseCase', (): void => {
       expect(onDeepUpdate).toHaveBeenCalledTimes(0);
     });
 
-    test('event options should be triggered', async (): Promise<void> => {
-      let readFilePromise: Promise<number> | null = null;
-      const buttonText = 'my button';
-
-      const onReadFile = jest.fn((path: string): number => {
-        void path;
-
-        return 1024;
-      });
-
-      const onSizeChange = jest.fn<(size: number) => void>();
-
-      const TestComponent = (): React.ReactElement => {
-        const [{ size }, { readFile }] = useUseCase(defaultFile, fileUseCase, {
-          onReadFile,
-        });
-
-        const onClick = (): void => {
-          readFilePromise = readFile(PATH_1);
-        };
-
-        useUpdateEffect((): void => {
-          onSizeChange(size);
-        }, [size]);
-
-        return <button onClick={onClick}>{buttonText}</button>;
-      };
-
-      render(<TestComponent />);
-
-      expect(onReadFile).toHaveBeenCalledTimes(0);
-      expect(onSizeChange).toHaveBeenCalledTimes(0);
-
-      await act(async (): Promise<void> => {
-        fireEvent.click(screen.getByText(buttonText));
-        await readFilePromise;
-      });
-
-      expect(onReadFile).toHaveBeenCalledTimes(1);
-      expect(onReadFile).toHaveBeenCalledWith(PATH_1);
-      expect(onSizeChange).toHaveBeenCalledTimes(1);
-      expect(onSizeChange).toHaveBeenCalledWith(1024);
-    });
-
     test(`should call latest functions of usecase options even deps has not change`, (): void => {
       const onPathChange1 = jest.fn();
       const onPathChange2 = jest.fn();
@@ -2744,74 +2700,6 @@ describe('useUseCase', (): void => {
       expect(onSecondChange).toHaveBeenCalledTimes(1);
 
       expect(onSecondChange).toHaveBeenLastCalledWith(defaultFile, { ...defaultFile, ext: EXT_1, path: PATH_1 });
-    });
-
-    test('event options should be triggered at child components', async (): Promise<void> => {
-      let readFilePromise: Promise<number> | null = null;
-      const buttonText = 'my button';
-
-      const onReadFile1 = jest.fn((path: string): number => {
-        void path;
-        return 512;
-      });
-
-      const onReadFile2 = jest.fn((path: string): number => {
-        void path;
-        return 1024;
-      });
-
-      const onSizeChange = jest.fn<(size: number) => void>();
-
-      const A = (): React.ReactElement => {
-        const [{ size }, { readFile }] = useUseCase(fileUseCase, {
-          onReadFile: onReadFile1,
-        });
-
-        const onClick = (): void => {
-          readFilePromise = readFile(PATH_1);
-        };
-
-        useUpdateEffect((): void => {
-          onSizeChange(size);
-        }, [size]);
-
-        return (
-          <Fragment>
-            <button onClick={onClick}>{buttonText}</button>
-          </Fragment>
-        );
-      };
-
-      const B = (): React.ReactElement => {
-        const [, , Provider] = useUseCase(defaultFile, fileUseCase, {
-          onReadFile: onReadFile2,
-        });
-
-        return (
-          <Provider>
-            <A />
-          </Provider>
-        );
-      };
-
-      render(<B />);
-
-      expect(onReadFile1).toHaveBeenCalledTimes(0);
-      expect(onReadFile2).toHaveBeenCalledTimes(0);
-
-      await act(async (): Promise<void> => {
-        fireEvent.click(screen.getByText(buttonText));
-
-        await readFilePromise;
-      });
-
-      expect(onReadFile1).toHaveBeenCalledTimes(1);
-      expect(onReadFile2).toHaveBeenCalledWith(PATH_1);
-
-      expect(onReadFile1).toHaveBeenCalledTimes(1);
-      expect(onReadFile2).toHaveBeenCalledWith(PATH_1);
-      expect(onSizeChange).toHaveBeenCalledTimes(1);
-      expect(onSizeChange).toHaveBeenCalledWith(1024);
     });
 
     test('`options.watch` should be triggered at child components', (): void => {

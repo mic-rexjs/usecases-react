@@ -9,7 +9,6 @@ import {
   SymbolSet,
   SymbolSetTarget,
 } from '@mic-rexjs/usecases/es/types';
-import { VoidifyEventOptions } from '@/classes/OptionsSet/types';
 import { MatchPropertyFailedResult } from '@/entities/matchPropertyFailedResult/types';
 import { Dependencies, EntityInitializer } from '@/types';
 import { ContextualEntityReducers } from '@/usecases/contextUseCase/types';
@@ -95,8 +94,20 @@ export type EntityWatchMap<T> = {
 };
 
 export interface ContextualUseCaseHookOptions<T> {
+  /**
+   * 触发机制包括以下两点：
+   *
+   * 1. 由相关 `reducers` 的调用行为触发 - 非渲染阶段；
+   * 2. 由 `useUseCase(entity, usecase)` 中的 `entity` 变化触发 - 渲染阶段。
+   */
   watch?: EntityWatchMap<T>;
 
+  /**
+   * 非渲染阶段触发，随后会触发组件的更新：
+   *
+   * 只由相关 `reducers` 的调用行为触发；
+   * 不包括 `useUseCase(entity, usecase)` 中的 `entity` 变化触发。
+   */
   onChange?(newEntity: T, oldEntity: T): void;
 }
 
@@ -127,7 +138,7 @@ export interface ReducersHook {
 export interface ContextualCoreCollectionHook {
   <T, TEntityReducers extends EntityReducerMap<T>, TUseCaseOptions extends object = object>(
     usecase: InferableEntityUseCase<T, TEntityReducers, TUseCaseOptions>,
-    options?: UseCaseHookOptions<T, VoidifyEventOptions<TUseCaseOptions>>,
+    options?: ContextualUseCaseHookOptions<T>,
   ): CoreCollection<T, TEntityReducers>;
 }
 

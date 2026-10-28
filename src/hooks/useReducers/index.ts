@@ -1,39 +1,80 @@
-import { useContextualItem } from '../useContextualItem';
+import { useReturn } from '../useReturn';
+import { ContextualUseCaseHookOptions, UseCaseHookOptions } from '../useUseCase/types';
 import { createEntityReducers, EntityStore } from '@mic-rexjs/usecases';
-import { EntityReducers, EntityUseCase, ReducerMap, UseCase } from '@mic-rexjs/usecases/es/types';
+import { EntityReducers, EntityUseCase, RestArguments, UseCase } from '@mic-rexjs/usecases/es/types';
+import { useLatest } from 'ahooks';
 import { useContext } from 'react';
 import { Statuses } from '@/enums/Statuses';
-import { Dependencies } from '@/types';
-import { UseCaseContext, UseCaseContextValue } from '@/usecases/contextUseCase/types';
+import { UnknownReducerMap } from '@/types';
+import { ContextualEntityReducers, EntityUseCaseContextValue, UseCaseContext } from '@/usecases/contextUseCase/types';
 
-export const useReducers = <T, TReducers extends ReducerMap, TOptions extends object>(
-  usecase: UseCase<TReducers, TOptions> | EntityUseCase<T, TReducers & EntityReducers<T>, TOptions>,
+export const useReducers = <T, TReducers extends UnknownReducerMap<T>, TOptions extends object>(
+  usecase: UseCase<TReducers, TOptions> | EntityUseCase<T, TReducers, TOptions>,
   store: EntityStore<T>,
-  context: UseCaseContext<UseCaseContextValue<TReducers>>,
+  context: UseCaseContext<EntityUseCaseContextValue<T, TReducers>>,
   statuses: Statuses,
-  usecaseOptions: TOptions,
-  deps: Dependencies = [],
-): TReducers => {
+  options: TOptions | UseCaseHookOptions<T, TOptions> | ContextualUseCaseHookOptions<T>,
+): TReducers | ContextualEntityReducers<T, TReducers> => {
   const contextValue = useContext(context);
   const { reducers: contextReducers = null } = contextValue || {};
-  const entityEnabled = (statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled;
+  const { watch, onChange, ...restOptions } = options as UseCaseHookOptions<T, TOptions>;
+  const { options: initailOptions = restOptions as TOptions } = options as UseCaseHookOptions<T, TOptions>;
+  const initailOptionsRef = useLatest(initailOptions);
+  const reducersKey = statuses & Statuses.ReducersKey;
 
-  const onCreate = (): TReducers => {
-    if (!entityEnabled) {
-      return usecase(usecaseOptions);
+  const onOption = <K extends keyof TOptions>(key: K): TOptions[K] => {
+    return (<TReturn>(...args: RestArguments): void | TReturn => {
+      const { current: currentInitailOptions } = initailOptionsRef;
+      const currentValue = currentInitailOptions[key];
+
+      if (typeof currentValue !== 'function') {
+        return;
+      }
+
+      return currentValue(...args);
+    }) as TOptions[K];
+  };
+
+  const onOptions = (): TOptions => {
+    const newOptions = { ...initailOptions };
+
+    for (const key of Object.keys(newOptions)) {
+      const optionKey = key as keyof TOptions;
+      const value = newOptions[optionKey];
+
+      if (typeof value !== 'function') {
+        continue;
+      }
+
+      newOptions[optionKey] = onOption(optionKey);
     }
+
+    return newOptions;
+  };
+
+  return useReturn((): TReducers | ContextualEntityReducers<T, TReducers> => {
+    const hasEntity = (statuses & Statuses.Entity) === Statuses.Entity;
+    const isEntityRootRuntime = (statuses & Statuses.EntityRootRuntime) === Statuses.EntityRootRuntime;
+
+    if (!hasEntity) {
+      return usecase(options as TOptions);
+    }
+
+    if (!isEntityRootRuntime) {
+      return contextReducers!;
+    }
+
+    const newOptions = onOptions();
 
     return createEntityReducers(
       store,
-      usecase as EntityUseCase<T, EntityReducers<T>, TOptions>,
+      usecase as EntityUseCase<T, TReducers & EntityReducers<T>, TOptions>,
       {
-        options: usecaseOptions,
+        options: newOptions,
         onGenerate<TResult>(newEntity: T, result: TResult): TResult {
           return result;
         },
       } as TOptions,
     );
-  };
-
-  return useContextualItem(contextReducers, statuses, onCreate, deps);
+  }, [reducersKey]);
 };

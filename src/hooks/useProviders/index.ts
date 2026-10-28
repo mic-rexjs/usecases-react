@@ -1,14 +1,13 @@
 import { useDepsKey } from '../useDepsKey';
 import { UseCaseProvider } from '../useProvider/types';
-import { useCreation, useLatest } from 'ahooks';
+import { useReturn } from '../useReturn';
+import { useLatest } from 'ahooks';
 
 export const useProviders = (...providers: UseCaseProvider[]): UseCaseProvider[] => {
   const depsKey = useDepsKey(providers);
   const providersRef = useLatest(providers);
 
-  return useCreation((): UseCaseProvider[] => {
-    void depsKey;
-
+  return useReturn((): UseCaseProvider[] => {
     return providersRef.current;
-  }, [depsKey, providersRef]);
+  }, [depsKey]);
 };

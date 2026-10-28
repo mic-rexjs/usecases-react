@@ -1,30 +1,25 @@
 import { useConstant } from '../useConstant';
-import { useConstantReducers } from '../useConstantReducers';
-import { useEntityInitializing } from '../useEntityInitializing';
-import { useExec } from '../useExec';
-import { UseCaseHookOptions } from '../useUseCase/types';
+import { useEntityReturn } from '../useEntityReturn';
+import { useEntityRootExec } from '../useEntityRootExec';
+import { ContextualUseCaseHookOptions } from '../useUseCase/types';
 import { EntityStore, utilsUseCase } from '@mic-rexjs/usecases';
-import { useLatest, useMemoizedFn, useUnmount, useUpdate, useUpdateEffect } from 'ahooks';
+import { useLatest, useMemoizedFn, useUpdate, useUpdateEffect } from 'ahooks';
 import { useRef } from 'react';
 import { Statuses } from '@/enums/Statuses';
 import { triggerWatchers } from '@/methods/triggerWatchers';
 import { lifecycleEventUseCase } from '@/usecases/lifecycleEventUseCase';
-import { LifecycleEventReducers } from '@/usecases/lifecycleEventUseCase/types';
 
-export const useEntity = <T>(store: EntityStore<T>, statuses: Statuses, hookOptions: UseCaseHookOptions<T>): T => {
+export const useEntity = <T>(
+  store: EntityStore<T>,
+  statuses: Statuses,
+  options: ContextualUseCaseHookOptions<T>,
+): T => {
   const { value: entity } = store;
   const update = useUpdate();
-  const isInitializing = useEntityInitializing(statuses);
-  const hookOptionsRef = useLatest(hookOptions);
+  const optionsRef = useLatest(options);
   const prevEntityRef = useRef(entity);
-  const entityEnabled = (statuses & Statuses.EntityEnabled) === Statuses.EntityEnabled;
-  const entityRootEnabled = (statuses & Statuses.EntityRootEnabled) === Statuses.EntityRootEnabled;
-
-  const { bindLifecycleEventsKey, getLifecycleEvents, deleteLifecycleEvents } = useConstantReducers(
-    (): LifecycleEventReducers => {
-      return lifecycleEventUseCase();
-    },
-  );
+  const hasEntity = (statuses & Statuses.Entity) === Statuses.Entity;
+  const { bindLifecycleEventsKey, getLifecycleEvents, deleteLifecycleEvents } = useConstant(lifecycleEventUseCase);
 
   const lifecycleKey = useConstant((): React.Key => {
     const { createKey } = utilsUseCase();
@@ -33,7 +28,7 @@ export const useEntity = <T>(store: EntityStore<T>, statuses: Statuses, hookOpti
   });
 
   const onTriggerWatchers = useMemoizedFn((newEntity: T, oldEntity: T): void => {
-    const { watch } = hookOptionsRef.current;
+    const { watch } = optionsRef.current;
 
     if (!watch) {
       return;
@@ -43,11 +38,11 @@ export const useEntity = <T>(store: EntityStore<T>, statuses: Statuses, hookOpti
   });
 
   const onEntityUpdate = useMemoizedFn((newEntity = entity, oldEntity = prevEntityRef.current): void => {
-    if (!entityEnabled) {
+    const { current: prevEntity } = prevEntityRef;
+
+    if (!hasEntity) {
       return;
     }
-
-    const { current: prevEntity } = prevEntityRef;
 
     if (prevEntity === newEntity) {
       return;
@@ -63,74 +58,60 @@ export const useEntity = <T>(store: EntityStore<T>, statuses: Statuses, hookOpti
     onUpdate?.(newEntity, oldEntity);
   });
 
-  const onEntityChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
-    const { current: currentHookOptions } = hookOptionsRef;
-    const { onChange: onChange1 } = currentHookOptions;
-    const { onChange: onChange2 } = getLifecycleEvents(lifecycleKey);
+  const onEntityLifecycleChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
+    const { onChange } = getLifecycleEvents(lifecycleKey);
 
-    onEntityUpdate(newEntity, oldEntity);
-    onChange1?.(newEntity, oldEntity);
-    onChange2?.(newEntity, oldEntity);
-
-    if (!entityRootEnabled) {
-      return;
-    }
-
+    onChange?.(newEntity, oldEntity);
     update();
   });
 
-  useExec(
-    (): void => {
-      if (!entityRootEnabled) {
-        return;
-      }
+  const onEntityOptionsChange = useMemoizedFn((newEntity: T, oldEntity: T): void => {
+    const { current: currentOptions } = optionsRef;
+    const { onChange } = currentOptions;
 
+    onChange?.(newEntity, oldEntity);
+  });
+
+  useEntityRootExec(
+    statuses,
+    (): void => {
       const { onBind, onAdopt } = bindLifecycleEventsKey(lifecycleKey);
 
-      if (!isInitializing) {
-        return;
-      }
-
+      store.watch(onEntityLifecycleChange);
       onBind?.(entity);
       onAdopt?.(entity);
     },
-    null,
-    [],
+    (): void => {
+      // 要使用最新的 `entity`
+      const { value: currentEntity } = store;
+      const { onUnbind, onDiscard } = getLifecycleEvents(lifecycleKey);
+
+      store.unwatch(onEntityLifecycleChange);
+      deleteLifecycleEvents(lifecycleKey);
+
+      onUnbind?.(currentEntity);
+      onDiscard?.(currentEntity);
+    },
   );
-
-  useUnmount((): void => {
-    if (!entityRootEnabled) {
-      return;
-    }
-
-    // 要使用最新的 `entity`
-    const { value: currentEntity } = store;
-    const { onUnbind, onDiscard } = getLifecycleEvents(lifecycleKey);
-
-    deleteLifecycleEvents(lifecycleKey);
-    onUnbind?.(currentEntity);
-    onDiscard?.(currentEntity);
-  });
 
   /**
    * 需要马上 `watch`，因为 `useEffect` 在子组件内优先执行，
    * 如果使用了 `setEntity` 则无法监控到变化
    */
-  useExec(
+  useEntityReturn(
+    statuses,
     (): void => {
-      if (!entityEnabled) {
-        return;
-      }
-
-      store.watch(onEntityChange);
+      store.watch(onEntityOptionsChange);
+      store.watch(onEntityUpdate);
     },
     /**
      * 在变化时候，组件更新前，使用 `unwatch`
      */
     (): void => {
-      store.unwatch(onEntityChange);
+      store.unwatch(onEntityOptionsChange);
+      store.unwatch(onEntityUpdate);
     },
-    [store, entityEnabled, onEntityChange],
+    [store],
   );
 
   useUpdateEffect((): void => {

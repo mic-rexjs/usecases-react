@@ -6,25 +6,21 @@ import {
   ReducerKeys,
   Reducers,
 } from '@mic-rexjs/usecases';
-import { EntityReducerMap, InferableUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
-import { OptionsSet } from '@/classes/OptionsSet';
-import { ArgumentTypes } from '@/enums/ArgumentTypes';
+import { EntityReducerMap, EntityUseCase, ReducerMap } from '@mic-rexjs/usecases/es/types';
 import { Statuses } from '@/enums/Statuses';
 
 export interface UseCaseContextValue<T extends ReducerMap> {
+  key: React.Key;
+
   reducers: T;
 
   statuses: Statuses;
 }
 
-export interface EntityUseCaseContextValue<
-  T,
-  TEntityReducers extends EntityReducerMap<T>,
-  TOptions = object,
-> extends UseCaseContextValue<ContextualEntityReducers<T, TEntityReducers>> {
+export interface EntityUseCaseContextValue<T, TEntityReducers extends EntityReducerMap<T>> extends UseCaseContextValue<
+  ContextualEntityReducers<T, TEntityReducers>
+> {
   store: EntityStore<T>;
-
-  optionsSet: OptionsSet<TOptions>;
 }
 
 export interface UseCaseContext<T> extends React.Context<T | null> {}
@@ -54,24 +50,16 @@ export type ContextualEntityReducers<T, TEntityReducers extends EntityReducerMap
 };
 
 export type ContextReducers = Reducers<{
-  createContextValue<T, TReducers extends ReducerMap>(
-    store: EntityStore<T>,
-    reducers: TReducers,
-    statuses: Statuses,
-  ): UseCaseContextValue<TReducers>;
+  getContext<T, TEntityReducers extends EntityReducerMap<T>, TUseCaseOptions extends object>(
+    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
+  ): UseCaseContext<EntityUseCaseContextValue<T, TEntityReducers>>;
 
-  getUseCaseContext<T extends ReducerMap, TUseCaseOptions extends object>(
-    usecase: InferableUseCase<T, TUseCaseOptions>,
-  ): UseCaseContext<UseCaseContextValue<T>>;
+  registerUseCase<T, TEntityReducers extends EntityReducerMap<T>, TUseCaseOptions extends object>(
+    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
+  ): UseCaseContext<EntityUseCaseContextValue<T, TEntityReducers>>;
 
-  registerUseCase<T extends ReducerMap, TUseCaseOptions extends object>(
-    usecase: InferableUseCase<T, TUseCaseOptions>,
-    argumentTypes: ArgumentTypes,
-  ): UseCaseContext<UseCaseContextValue<T>>;
-
-  unregisterUseCase<T extends ReducerMap, TUseCaseOptions extends object>(
-    usecase: InferableUseCase<T, TUseCaseOptions>,
-    argumentTypes: ArgumentTypes,
+  unregisterUseCase<T, TEntityReducers extends EntityReducerMap<T>, TUseCaseOptions extends object>(
+    usecase: EntityUseCase<T, TEntityReducers, TUseCaseOptions>,
   ): boolean;
 }>;
 

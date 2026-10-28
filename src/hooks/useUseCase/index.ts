@@ -1,52 +1,43 @@
-import { useArgumentTypes } from '../useArgumentTypes';
-import { useConstantFn } from '../useConstantFn';
 import { useContext } from '../useContext';
 import { useContextValue } from '../useContextValue';
 import { useEntity } from '../useEntity';
 import { useFullArguments } from '../useFullArguments';
 import { useIsRenderingRef } from '../useIsRenderingRef';
-import { useOptions } from '../useOptions';
-import { useOptionsSet } from '../useOptionsSet';
 import { useProvider } from '../useProvider';
 import { useReducers } from '../useReducers';
+import { useReturn } from '../useReturn';
 import { useStatuses } from '../useStatuses';
 import { useStore } from '../useStore';
 import { CoreCollection, UseCaseHook, UseCaseHookParameters } from './types';
-import { EntityReducers, Reducers } from '@mic-rexjs/usecases';
-import { ReducerMap } from '@mic-rexjs/usecases/es/types';
-import { useCreation } from 'ahooks';
 import { Statuses } from '@/enums/Statuses';
 import { cacheCalls } from '@/methods/cacheCalls';
-import { ContextualEntityReducers, EntityUseCaseContextValue, UseCaseContext } from '@/usecases/contextUseCase/types';
+import { UnknownReducerMap } from '@/types';
+import { ContextualEntityReducers } from '@/usecases/contextUseCase/types';
 
-export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions extends object>(
+export const useUseCase: UseCaseHook = <T, TReducers extends UnknownReducerMap<T>, TUseCaseOptions extends object>(
   ...args: UseCaseHookParameters
-): TReducers | ContextualEntityReducers<T, EntityReducers<T>> | CoreCollection<T, EntityReducers<T>> => {
-  const isRenderingRef = useIsRenderingRef();
-  const argumentTypes = useArgumentTypes(args);
-  const fullArguments = useFullArguments<T, TReducers, TUseCaseOptions>(args, argumentTypes);
-  const [unsafeEntity, unsafeUsecase, options, deps] = fullArguments;
-  const usecase = useConstantFn(unsafeUsecase);
-  const context = useContext(usecase, argumentTypes);
-  const entityContext = context as unknown as UseCaseContext<EntityUseCaseContextValue<T, EntityReducers<T>>>;
-  const statuses = useStatuses(context, argumentTypes);
-  const store = useStore(unsafeEntity, entityContext, statuses, deps);
-  const optionsSet = useOptionsSet(entityContext, statuses);
-  const { hookOptions, usecaseOptions } = useOptions(options, optionsSet, statuses, deps);
-  const reducers = useReducers(usecase, store, context, statuses, usecaseOptions as TUseCaseOptions, deps);
-  const entity = useEntity<T>(store, statuses, hookOptions);
-  const contextValue = useContextValue(store, reducers, optionsSet, statuses);
+): TReducers | ContextualEntityReducers<T, TReducers> | CoreCollection<T, TReducers> => {
+  const [, arg2] = args;
+  const isEntityRoot = typeof arg2 === 'function';
+  const fullArguments = useFullArguments<T, TReducers, TUseCaseOptions>(args, isEntityRoot);
+  const [unsafeEntity, usecase, options] = fullArguments;
+  const context = useContext<T, TReducers, TUseCaseOptions>(usecase, isEntityRoot);
+  const statuses = useStatuses(fullArguments, context, isEntityRoot);
+  const store = useStore(unsafeEntity, context, statuses);
+  const reducers = useReducers(usecase, store, context, statuses, options);
+  const entity = useEntity<T>(store, statuses, options);
+  const contextValue = useContextValue(entity, store, reducers, statuses);
   const Provider = useProvider(context, contextValue);
+  const isRenderingRef = useIsRenderingRef();
 
-  return useCreation(():
-    | TReducers
-    | ContextualEntityReducers<T, EntityReducers<T>>
-    | CoreCollection<T, EntityReducers<T>> => {
-    if ((statuses & Statuses.EntityEnabled) !== Statuses.EntityEnabled) {
+  return useReturn((): TReducers | ContextualEntityReducers<T, TReducers> | CoreCollection<T, TReducers> => {
+    const hasEntity = (statuses & Statuses.Entity) === Statuses.Entity;
+
+    if (!hasEntity) {
       return reducers;
     }
 
-    const cachedReducers = cacheCalls(reducers as Reducers as ContextualEntityReducers<T, EntityReducers<T>>, {
+    const cachedReducers = cacheCalls(reducers as ContextualEntityReducers<T, TReducers>, {
       onShouldCache(): boolean {
         return isRenderingRef.current;
       },
@@ -61,4 +52,4 @@ export const useUseCase = (<T, TReducers extends ReducerMap, TUseCaseOptions ext
 
     return [newEntity, cachedReducers, Provider];
   }, [statuses, entity, reducers, Provider, isRenderingRef]);
-}) as UseCaseHook;
+};

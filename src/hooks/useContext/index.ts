@@ -1,26 +1,32 @@
 import { useConstant } from '../useConstant';
+import { useReturn } from '../useReturn';
 import { UseCase } from '@mic-rexjs/usecases';
-import { ReducerMap } from '@mic-rexjs/usecases/es/types';
-import { useUnmount } from 'ahooks';
-import { ArgumentTypes } from '@/enums/ArgumentTypes';
+import { EntityUseCase } from '@mic-rexjs/usecases/es/types';
+import { UnknownReducerMap } from '@/types';
 import { contextUseCase } from '@/usecases/contextUseCase';
-import { UseCaseContext, UseCaseContextValue } from '@/usecases/contextUseCase/types';
+import { EntityUseCaseContextValue, UseCaseContext } from '@/usecases/contextUseCase/types';
 
-export const useContext = <T extends ReducerMap, TUseCaseOptions extends object>(
-  usecase: UseCase<T, TUseCaseOptions>,
-  argumentTypes = ArgumentTypes.None,
-): UseCaseContext<UseCaseContextValue<T>> => {
-  const context = useConstant((): UseCaseContext<UseCaseContextValue<T>> => {
-    const { registerUseCase } = contextUseCase();
+export const useContext = <T, TReducers extends UnknownReducerMap<T>, TUseCaseOptions extends object>(
+  usecase: UseCase<TReducers, TUseCaseOptions>,
+  isEntityRoot: boolean,
+): UseCaseContext<EntityUseCaseContextValue<T, TReducers>> => {
+  const { getContext, registerUseCase, unregisterUseCase } = useConstant(contextUseCase);
 
-    return registerUseCase(usecase, argumentTypes);
-  });
+  return useReturn(
+    (): UseCaseContext<EntityUseCaseContextValue<T, TReducers>> => {
+      if (isEntityRoot) {
+        return registerUseCase(usecase as EntityUseCase<T, TReducers>);
+      }
 
-  useUnmount((): void => {
-    const { unregisterUseCase } = contextUseCase();
+      return getContext(usecase);
+    },
+    (): void => {
+      if (!isEntityRoot) {
+        return;
+      }
 
-    unregisterUseCase(usecase, argumentTypes);
-  });
-
-  return context;
+      unregisterUseCase(usecase as EntityUseCase<T, TReducers>);
+    },
+    [usecase, isEntityRoot],
+  );
 };

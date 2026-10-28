@@ -26,8 +26,10 @@ export interface LifecycleEvents<T = unknown> {
    *
    * 只由相关 `reducers` 的调用行为触发；
    * 不包括 `useUseCase(entity, usecase)` 中的 `entity` 变化触发。
+   *
+   * @returns 返回一个布尔值，决定是否跳过组件更新。
    */
-  onChange(newEntity: T, oldEntity: T): void;
+  onChange(newEntity: T, oldEntity: T): void | number | boolean | Promise<boolean>;
 
   /**
    * 触发机制包括以下两点：
